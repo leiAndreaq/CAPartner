@@ -8,13 +8,14 @@ export default function Navbar({
   userInitials = 'JC',
   userName = 'Jeremy Pretzel 213',
   userRole = 'Administrator',
+  hasAlerts = true, // Set to true to show the red notification dot
   onLogout,
 }) {
   const [currentTime, setCurrentTime] = useState('');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  // DYNAMIC DATE AND TIME FORMATTER (e.g. "Oct 11 - 2026, 01:54 PM")
+  // DYNAMIC DATE AND TIME FORMATTER
   useEffect(() => {
     const updateDateTime = () => {
       const now = new Date();
@@ -82,7 +83,7 @@ export default function Navbar({
           />
           <div className="flex flex-col justify-center" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             
-            {/* ROW 1: BRAND NAME & EXACT MATCH ADMINISTRATOR BADGE */}
+            {/* ROW 1: BRAND NAME & ADMINISTRATOR BADGE */}
             <div className="flex items-center gap-2" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span
                 className="font-black text-lg tracking-tight text-white leading-none"
@@ -91,7 +92,6 @@ export default function Navbar({
                 CAPartner
               </span>
 
-              {/* UPDATED BADGE STYLING */}
               <span
                 className="rounded-full font-black uppercase tracking-wider inline-flex items-center justify-center"
                 style={{
@@ -166,11 +166,10 @@ export default function Navbar({
         {/* RIGHT SECTION: ALERTS BUTTON + USER AVATAR & DROPDOWN */}
         <div className="flex items-center gap-4 relative" style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative' }} ref={dropdownRef}>
           
-          {/* ALERTS BUTTON */}
+          {/* ALERTS BUTTON WITH CORNER NOTIFICATION DOT */}
           <button
             type="button"
             onClick={() => onTabChange && onTabChange('Alerts')}
-            className="relative flex items-center gap-2 px-4 py-2 rounded-xl cursor-pointer border-none"
             style={{
               position: 'relative',
               display: 'flex',
@@ -190,22 +189,24 @@ export default function Navbar({
             <Icon icon="lucide:siren" width="18" height="18" color="#ff4d4d" />
             <span>ALERTS</span>
 
-            {/* RED NOTIFICATION DOT */}
-            <span
-              style={{
-                position: 'absolute',
-                top: '-2px',
-                right: '-2px',
-                width: '10px',
-                height: '10px',
-                borderRadius: '50%',
-                backgroundColor: '#ff0000',
-                border: '2px solid #043114',
-              }}
-            />
+            {/* TOP-RIGHT CORNER RED NOTIFICATION DOT */}
+            {hasAlerts && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '-4px',
+                  right: '-4px',
+                  width: '12px',
+                  height: '12px',
+                  borderRadius: '50%',
+                  backgroundColor: '#ff0000',
+                  boxShadow: '0 0 6px rgba(255, 0, 0, 0.6)',
+                }}
+              />
+            )}
           </button>
 
-          {/* USER INITIALS CIRCLE (TOGGLES POPOVER) */}
+          {/* USER INITIALS CIRCLE */}
           <button
             type="button"
             onClick={() => setIsProfileOpen(!isProfileOpen)}

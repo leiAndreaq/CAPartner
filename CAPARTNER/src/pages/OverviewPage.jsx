@@ -206,7 +206,7 @@ function EnforcerCard({
 }
 
 {/* MAIN OVERVIEW PAGE COMPONENT */}
-export default function OverviewPage({ onLogout }) {
+export default function OverviewPage({ onTabChange, onLogout }) {
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const [selectedEnforcer, setSelectedEnforcer] = useState(null);
 
@@ -328,8 +328,42 @@ export default function OverviewPage({ onLogout }) {
       }}
       className="min-h-screen flex flex-col bg-white"
     >
+      {/* INJECTED AUTO-HIDING SCROLLBAR STYLES */}
+      <style>{`
+        /* Smooth scrolling */
+        html {
+          scroll-behavior: smooth;
+        }
+
+        /* Auto-hiding modern scrollbar */
+        ::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+          background: rgba(5, 61, 28, 0.25);
+          border-radius: 9999px;
+          transition: background 0.3s ease;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+          background: rgba(5, 61, 28, 0.7);
+        }
+
+        /* Firefox support */
+        * {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(5, 61, 28, 0.3) transparent;
+        }
+      `}</style>
+
       {/* NAVBAR COMPONENT */}
-      <Navbar activeTab="Overview" onLogout={onLogout} />
+      <Navbar activeTab="Overview" onTabChange={onTabChange} onLogout={onLogout} />
 
       {/* MAIN CONTENT BODY */}
       <main style={{ flex: 1, maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '32px 24px' }}>
