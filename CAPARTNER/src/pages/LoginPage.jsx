@@ -223,8 +223,9 @@ export default function LoginPage({ onLoginSuccess }) {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
-                    color: '#1e293b',
+                    color: '#064018',
                     cursor: 'pointer',
+                    fontWeight: 700
                   }}
                 >
                   <input

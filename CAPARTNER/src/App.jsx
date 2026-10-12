@@ -5,7 +5,9 @@ import LoginPage from './pages/LoginPage';
 import TwoFactorPage from './pages/TwoFactorPage';
 import OverviewPage from './pages/OverviewPage';
 import MonitoringPage from './pages/MonitoringPage';
+import CameraPage from './pages/CameraPage';
 import SettingsPage from './pages/SettingsPage';
+import ActivityPage from './pages/ActivityPage';
 
 export default function App() {
   const [currentStep, setCurrentStep] = useState('splash');
@@ -14,6 +16,8 @@ export default function App() {
   const handleTabChange = (tabName) => {
     if (tabName === 'Overview') setCurrentStep('overview');
     if (tabName === 'Monitoring') setCurrentStep('monitoring');
+    if (tabName === 'Camera') setCurrentStep('camera');
+    if (tabName === 'Activity Log') setCurrentStep('activityLog');
     if (tabName === 'Settings') setCurrentStep('settings');
   };
 
@@ -55,6 +59,24 @@ export default function App() {
   if (currentStep === 'monitoring') {
     return (
       <MonitoringPage
+        onTabChange={handleTabChange}
+        onLogout={() => setCurrentStep('login')}
+      />
+    );
+  }
+
+  if (currentStep === 'camera') {
+    return (
+      <CameraPage
+        onTabChange={handleTabChange}
+        onLogout={() => setCurrentStep('login')}
+      />
+    );
+  }
+
+  if (currentStep === 'activityLog') {
+    return (
+      <ActivityPage
         onTabChange={handleTabChange}
         onLogout={() => setCurrentStep('login')}
       />

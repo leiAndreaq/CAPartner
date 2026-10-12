@@ -4,7 +4,6 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
 export default function SettingsPage({ onTabChange, onLogout }) {
-  // ADMIN PROFILE FORM STATE
   const [profile, setProfile] = useState({
     fullName: '',
     email: '',
@@ -19,6 +18,9 @@ export default function SettingsPage({ onTabChange, onLogout }) {
     loraFallback: true,
     lowBattery: true,
   });
+
+  // LOGOUT CONFIRMATION MODAL STATE
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const toggleNotification = (key) => {
     setNotifications((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -472,10 +474,10 @@ export default function SettingsPage({ onTabChange, onLogout }) {
                 Are you sure you want to end your current admin session?
               </p>
 
-              {/* LOGOUT BUTTON */}
+              {/* LOGOUT BUTTON - TRIGGERS CONFIRMATION MODAL */}
               <button
                 type="button"
-                onClick={onLogout}
+                onClick={() => setShowLogoutModal(true)}
                 style={{
                   width: '100%',
                   backgroundColor: '#fcdcdc',
@@ -510,6 +512,124 @@ export default function SettingsPage({ onTabChange, onLogout }) {
 
       {/* FOOTER */}
       <Footer />
+
+      {/* LOGOUT CONFIRMATION MODAL */}
+      {showLogoutModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            backdropFilter: 'blur(2px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#ffffff',
+              border: '2px solid #033015', 
+              borderRadius: '24px',
+              padding: '36px 32px 0px 32px',
+              width: '100%',
+              maxWidth: '360px',
+              textAlign: 'center',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.25)',
+              boxSizing: 'border-box',
+              overflow: 'hidden', // Clips the bottom green band perfectly
+            }}
+          >
+            {/* TITLE */}
+            <h2
+              style={{
+                fontSize: '1.85rem',
+                fontWeight: 900,
+                color: '#033015',
+                margin: '0 0 6px 0',
+                lineHeight: 1.2,
+              }}
+            >
+              Are you sure?
+            </h2>
+
+            {/* SUBTITLE */}
+            <p
+              style={{
+                fontSize: '0.85rem',
+                fontStyle: 'italic',
+                color: '#4a5568',
+                margin: '0 0 28px 0',
+              }}
+            >
+              Are you sure you want to LOG OUT?
+            </p>
+
+            {/* BUTTON ACTION GROUP */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '14px',
+                marginBottom: '28px',
+              }}
+            >
+              {/* SOLID LOG OUT BUTTON */}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowLogoutModal(false);
+                  if (onLogout) onLogout();
+                }}
+                style={{
+                  backgroundColor: '#033015',
+                  color: '#ffffff',
+                  borderRadius: '9999px',
+                  padding: '10px 26px',
+                  fontWeight: 800,
+                  fontSize: '0.95rem',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'transform 0.1s ease',
+                }}
+              >
+                Log Out
+              </button>
+
+              {/* CANCEL BUTTON */}
+              <button
+                type="button"
+                onClick={() => setShowLogoutModal(false)}
+                style={{
+                  backgroundColor: 'transparent',
+                  color: '#033015',
+                  border: '2px solid #033015', 
+                  borderRadius: '9999px',
+                  padding: '8px 24px',
+                  fontWeight: 900,
+                  fontSize: '0.88rem',
+                  letterSpacing: '0.05em',
+                  cursor: 'pointer',
+                  transition: 'transform 0.1s ease',
+                }}
+              >
+                CANCEL
+              </button>
+            </div>
+
+            {/* SOLID GREEN DECORATIVE BOTTOM BAND */}
+            <div
+              style={{
+                height: '24px',
+                backgroundColor: '#033015',
+                margin: '0 -32px',
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
