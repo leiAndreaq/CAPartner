@@ -81,7 +81,7 @@ export default function CameraPage({ onTabChange, onLogout }) {
       <Navbar activeTab="Camera" onTabChange={onTabChange} onLogout={onLogout} />
 
       {/* MAIN CONTENT AREA */}
-      <main style={{ flex: 1, maxWidth: '1180px', width: '100%', margin: '0 auto', padding: '36px 24px' }}>
+      <main className="camera-main" style={{ flex: 1, maxWidth: '1180px', width: '100%', margin: '0 auto', padding: '36px 24px' }}>
         
         {/* PAGE HEADER */}
         <div style={{ marginBottom: '24px' }}>
@@ -103,6 +103,7 @@ export default function CameraPage({ onTabChange, onLogout }) {
 
         {/* LIVE CAMERA FEEDS GRID */}
         <div
+          className="camera-grid camera-live-grid"
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
@@ -210,6 +211,7 @@ export default function CameraPage({ onTabChange, onLogout }) {
 
           {/* FILTERS & SEARCH ROW */}
           <div
+            className="camera-filters"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -220,7 +222,7 @@ export default function CameraPage({ onTabChange, onLogout }) {
             }}
           >
             {/* ENFORCER FILTER TABS */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <div className="camera-tab-row" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               {['All', 'Enforcer 01', 'Enforcer 02', 'Enforcer 03'].map((tab) => {
                 const isActive = activeEnforcerTab === tab;
                 return (
@@ -247,7 +249,7 @@ export default function CameraPage({ onTabChange, onLogout }) {
             </div>
 
             {/* SEARCH & ACTION BUTTONS */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <div className="camera-tools" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
               {/* SEARCH INPUT */}
               <div
                 style={{
@@ -353,6 +355,7 @@ export default function CameraPage({ onTabChange, onLogout }) {
             {filteredClips.map((clip, index) => (
               <div
                 key={index}
+                className="recording-row"
                 style={{
                   display: 'flex',
                   alignItems: 'center',

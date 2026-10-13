@@ -26,6 +26,40 @@ export default function SettingsPage({ onTabChange, onLogout }) {
     setNotifications((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const renderSwitch = (enabled, onToggle) => (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={enabled ? 'Enabled' : 'Disabled'}
+      style={{
+        width: '52px',
+        height: '30px',
+        borderRadius: '9999px',
+        backgroundColor: enabled ? '#033015' : '#dff7e9',
+        border: `1px solid ${enabled ? '#033015' : '#a7f3d0'}`,
+        position: 'relative',
+        cursor: 'pointer',
+        transition: 'background-color 0.2s ease, border-color 0.2s ease',
+        padding: 0,
+        boxShadow: enabled ? 'inset 0 0 0 1px rgba(255,255,255,0.08)' : 'inset 0 0 0 1px rgba(3, 48, 21, 0.06)',
+      }}
+    >
+      <span
+        style={{
+          position: 'absolute',
+          top: '4px',
+          left: enabled ? '26px' : '4px',
+          width: '22px',
+          height: '22px',
+          borderRadius: '50%',
+          backgroundColor: '#ffffff',
+          transition: 'left 0.2s ease',
+          boxShadow: '0 2px 6px rgba(15, 23, 42, 0.18)',
+        }}
+      />
+    </button>
+  );
+
   const handleSaveProfile = (e) => {
     e.preventDefault();
     alert('Admin profile updated successfully!');
@@ -79,7 +113,7 @@ export default function SettingsPage({ onTabChange, onLogout }) {
       <Navbar activeTab="Settings" onTabChange={onTabChange} onLogout={onLogout} />
 
       {/* MAIN CONTENT AREA */}
-      <main style={{ flex: 1, maxWidth: '1150px', width: '100%', margin: '0 auto', padding: '40px 24px' }}>
+      <main className="settings-main" style={{ flex: 1, maxWidth: '1150px', width: '100%', margin: '0 auto', padding: '40px 24px' }}>
         
         {/* PAGE HEADER */}
         <div style={{ marginBottom: '28px' }}>
@@ -101,6 +135,7 @@ export default function SettingsPage({ onTabChange, onLogout }) {
 
         {/* TWO-COLUMN SETTINGS GRID */}
         <div
+          className="settings-grid"
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
@@ -248,7 +283,7 @@ export default function SettingsPage({ onTabChange, onLogout }) {
           </div>
 
           {/* RIGHT COLUMN: NOTIFICATIONS & END SESSION CARDS */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div className="settings-stack" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             
             {/* NOTIFICATIONS CARD */}
             <div
@@ -284,33 +319,7 @@ export default function SettingsPage({ onTabChange, onLogout }) {
                       Plays until acknowledged
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => toggleNotification('audibleSiren')}
-                    style={{
-                      width: '44px',
-                      height: '24px',
-                      borderRadius: '9999px',
-                      backgroundColor: notifications.audibleSiren ? '#033015' : '#cbd5e1',
-                      border: 'none',
-                      position: 'relative',
-                      cursor: 'pointer',
-                      transition: 'background-color 0.2s ease',
-                    }}
-                  >
-                    <span
-                      style={{
-                        position: 'absolute',
-                        top: '3px',
-                        left: notifications.audibleSiren ? '23px' : '3px',
-                        width: '18px',
-                        height: '18px',
-                        borderRadius: '50%',
-                        backgroundColor: '#ffffff',
-                        transition: 'left 0.2s ease',
-                      }}
-                    />
-                  </button>
+                  {renderSwitch(notifications.audibleSiren, () => toggleNotification('audibleSiren'))}
                 </div>
 
                 {/* TOGGLE 2 */}
@@ -331,33 +340,7 @@ export default function SettingsPage({ onTabChange, onLogout }) {
                       Station console only
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => toggleNotification('desktopNotifications')}
-                    style={{
-                      width: '44px',
-                      height: '24px',
-                      borderRadius: '9999px',
-                      backgroundColor: notifications.desktopNotifications ? '#033015' : '#cbd5e1',
-                      border: 'none',
-                      position: 'relative',
-                      cursor: 'pointer',
-                      transition: 'background-color 0.2s ease',
-                    }}
-                  >
-                    <span
-                      style={{
-                        position: 'absolute',
-                        top: '3px',
-                        left: notifications.desktopNotifications ? '23px' : '3px',
-                        width: '18px',
-                        height: '18px',
-                        borderRadius: '50%',
-                        backgroundColor: '#ffffff',
-                        transition: 'left 0.2s ease',
-                      }}
-                    />
-                  </button>
+                  {renderSwitch(notifications.desktopNotifications, () => toggleNotification('desktopNotifications'))}
                 </div>
 
                 {/* TOGGLE 3 */}
@@ -378,33 +361,7 @@ export default function SettingsPage({ onTabChange, onLogout }) {
                       When a cap loses internet
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => toggleNotification('loraFallback')}
-                    style={{
-                      width: '44px',
-                      height: '24px',
-                      borderRadius: '9999px',
-                      backgroundColor: notifications.loraFallback ? '#033015' : '#cbd5e1',
-                      border: 'none',
-                      position: 'relative',
-                      cursor: 'pointer',
-                      transition: 'background-color 0.2s ease',
-                    }}
-                  >
-                    <span
-                      style={{
-                        position: 'absolute',
-                        top: '3px',
-                        left: notifications.loraFallback ? '23px' : '3px',
-                        width: '18px',
-                        height: '18px',
-                        borderRadius: '50%',
-                        backgroundColor: '#ffffff',
-                        transition: 'left 0.2s ease',
-                      }}
-                    />
-                  </button>
+                  {renderSwitch(notifications.loraFallback, () => toggleNotification('loraFallback'))}
                 </div>
 
                 {/* TOGGLE 4 */}
@@ -424,33 +381,7 @@ export default function SettingsPage({ onTabChange, onLogout }) {
                       Below 20% remaining
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => toggleNotification('lowBattery')}
-                    style={{
-                      width: '44px',
-                      height: '24px',
-                      borderRadius: '9999px',
-                      backgroundColor: notifications.lowBattery ? '#033015' : '#cbd5e1',
-                      border: 'none',
-                      position: 'relative',
-                      cursor: 'pointer',
-                      transition: 'background-color 0.2s ease',
-                    }}
-                  >
-                    <span
-                      style={{
-                        position: 'absolute',
-                        top: '3px',
-                        left: notifications.lowBattery ? '23px' : '3px',
-                        width: '18px',
-                        height: '18px',
-                        borderRadius: '50%',
-                        backgroundColor: '#ffffff',
-                        transition: 'left 0.2s ease',
-                      }}
-                    />
-                  </button>
+                  {renderSwitch(notifications.lowBattery, () => toggleNotification('lowBattery'))}
                 </div>
 
               </div>
