@@ -19,6 +19,7 @@ export default function App() {
     if (tabName === 'Camera') setCurrentStep('camera');
     if (tabName === 'Activity Log') setCurrentStep('activityLog');
     if (tabName === 'Settings') setCurrentStep('settings');
+    if (tabName === 'Alerts') return;
   };
 
   if (currentStep === 'splash') {

@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Icon } from '@iconify/react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import zabarte1 from '../assets/zabarte1.jpg';
+import kiko2 from '../assets/kiko2.jpg';
 
 export default function CameraPage({ onTabChange, onLogout }) {
   const [activeEnforcerTab, setActiveEnforcerTab] = useState('All');
@@ -9,6 +11,40 @@ export default function CameraPage({ onTabChange, onLogout }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportType, setExportType] = useState('all'); // 'all' or 'clip'
+  const [selectedCamera, setSelectedCamera] = useState('CAP-A17');
+  const [expandedCameraId, setExpandedCameraId] = useState(null);
+
+  const cameraFeeds = [
+    {
+      id: 'CAP-A17',
+      label: 'Cap - 01 Streaming',
+      time: '00:29:52',
+      online: true,
+      bg: '#000000',
+      statusText: 'LIVE',
+      accent: '#ef4444',
+      image: zabarte1,
+    },
+    {
+      id: 'CAP-B04',
+      label: 'Cap - 02 Streaming',
+      time: '00:30:12',
+      online: true,
+      bg: '#000000',
+      statusText: 'LIVE',
+      accent: '#ef4444',
+      image: kiko2,
+    },
+    {
+      id: 'CAP-C22',
+      label: 'Cap - 03 offline',
+      time: 'Offline',
+      online: false,
+      bg: '#1e293b',
+      statusText: 'OFFLINE',
+      accent: '#ef4444',
+    },
+  ];
 
   // MOCK RECORDINGS DATA 
   const clips = [
@@ -67,6 +103,23 @@ export default function CameraPage({ onTabChange, onLogout }) {
     alert(`${exportType === 'all' ? 'All records' : 'Video clip'} exported successfully!`);
   };
 
+  const handleCameraSelect = (cameraId) => {
+    if (cameraId !== 'CAP-C22') {
+      setSelectedCamera(cameraId);
+      setExpandedCameraId(cameraId);
+    }
+  };
+
+  const handleCameraKeyDown = (event, cameraId) => {
+    if ((event.key === 'Enter' || event.key === ' ') && cameraId !== 'CAP-C22') {
+      event.preventDefault();
+      setSelectedCamera(cameraId);
+      setExpandedCameraId(cameraId);
+    }
+  };
+
+  const expandedCamera = cameraFeeds.find((camera) => camera.id === expandedCameraId) || null;
+
   return (
     <div
       style={{
@@ -81,7 +134,7 @@ export default function CameraPage({ onTabChange, onLogout }) {
       <Navbar activeTab="Camera" onTabChange={onTabChange} onLogout={onLogout} />
 
       {/* MAIN CONTENT AREA */}
-      <main style={{ flex: 1, maxWidth: '1180px', width: '100%', margin: '0 auto', padding: '36px 24px' }}>
+      <main className="camera-main" style={{ flex: 1, maxWidth: '1180px', width: '100%', margin: '0 auto', padding: '36px 24px' }}>
         
         {/* PAGE HEADER */}
         <div style={{ marginBottom: '24px' }}>
@@ -101,8 +154,24 @@ export default function CameraPage({ onTabChange, onLogout }) {
           </p>
         </div>
 
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '16px',
+            gap: '12px',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ color: '#475569', fontSize: '0.8rem', fontWeight: 700 }}>
+            Active feed: <span style={{ color: '#033015', fontWeight: 900 }}>{selectedCamera}</span>
+          </div>
+        </div>
+
         {/* LIVE CAMERA FEEDS GRID */}
         <div
+          className="camera-grid camera-live-grid"
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
@@ -110,88 +179,68 @@ export default function CameraPage({ onTabChange, onLogout }) {
             marginBottom: '40px',
           }}
         >
-          {/* FEED 1: CAP 01 */}
-          <div
-            style={{
-              backgroundColor: '#000000',
-              borderRadius: '16px',
-              overflow: 'hidden',
-              boxShadow: '0 10px 20px rgba(0, 0, 0, 0.12)',
-              position: 'relative',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            <div style={{ padding: '16px 20px', height: '180px', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ef4444' }} />
-                  <span style={{ color: '#ffffff', fontSize: '0.75rem', fontWeight: 900, letterSpacing: '0.05em' }}>LIVE</span>
-                </div>
-                <span style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 700 }}>CAP-A17</span>
-              </div>
-              <div style={{ textAlign: 'right', color: '#ffffff', fontSize: '0.78rem', fontWeight: 700, opacity: 0.9 }}>
-                00:29:52
-              </div>
-            </div>
-            <div style={{ backgroundColor: '#0f172a', padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#22c55e' }} />
-              <span style={{ color: '#ffffff', fontSize: '0.8rem', fontWeight: 700 }}>Cap - 01 Streaming</span>
-            </div>
-          </div>
+          {cameraFeeds.map((camera) => {
+            const isSelected = selectedCamera === camera.id;
+            const isOffline = !camera.online;
 
-          {/* FEED 2: CAP 02 */}
-          <div
-            style={{
-              backgroundColor: '#000000',
-              borderRadius: '16px',
-              overflow: 'hidden',
-              boxShadow: '0 10px 20px rgba(0, 0, 0, 0.12)',
-              position: 'relative',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            <div style={{ padding: '16px 20px', height: '180px', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ef4444' }} />
-                  <span style={{ color: '#ffffff', fontSize: '0.75rem', fontWeight: 900, letterSpacing: '0.05em' }}>LIVE</span>
-                </div>
-                <span style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 700 }}>CAP-B04</span>
-              </div>
-              <div style={{ textAlign: 'right', color: '#ffffff', fontSize: '0.78rem', fontWeight: 700, opacity: 0.9 }}>
-                00:30:12
-              </div>
-            </div>
-            <div style={{ backgroundColor: '#0f172a', padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#22c55e' }} />
-              <span style={{ color: '#ffffff', fontSize: '0.8rem', fontWeight: 700 }}>Cap - 02 Streaming</span>
-            </div>
-          </div>
+            return (
+              <button
+                key={camera.id}
+                type="button"
+                onClick={() => handleCameraSelect(camera.id)}
+                onKeyDown={(event) => handleCameraKeyDown(event, camera.id)}
+                disabled={isOffline}
+                aria-pressed={isSelected}
+                style={{
+                  background: camera.image ? `linear-gradient(180deg, rgba(15,23,42,0.08), rgba(2,6,23,0.20)), url(${camera.image}) center/cover no-repeat` : camera.bg,
+                  borderRadius: '16px',
+                  overflow: 'hidden',
+                  boxShadow: isSelected ? '0 0 0 2px rgba(96, 165, 250, 0.8), 0 12px 24px rgba(15, 23, 42, 0.16)' : '0 10px 20px rgba(0, 0, 0, 0.12)',
+                  position: 'relative',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  padding: 0,
+                  border: isSelected ? '2px solid #7dd3fc' : '2px solid transparent',
+                  cursor: isOffline ? 'not-allowed' : 'pointer',
+                  textAlign: 'left',
+                  transition: 'transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease',
+                  transform: isSelected ? 'translateY(-2px)' : 'translateY(0)',
+                  opacity: isOffline ? 0.85 : 1,
+                }}
+              >
+                <div style={{ padding: '16px 20px', height: '180px', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: camera.accent }} />
+                      <span style={{ color: '#ffffff', fontSize: '0.75rem', fontWeight: 900, letterSpacing: '0.05em' }}>{camera.statusText}</span>
+                    </div>
+                    <span style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 700 }}>{camera.id}</span>
+                  </div>
 
-          {/* FEED 3: CAP 03 OFFLINE */}
-          <div
-            style={{
-              backgroundColor: '#1e293b',
-              borderRadius: '16px',
-              overflow: 'hidden',
-              boxShadow: '0 10px 20px rgba(0, 0, 0, 0.12)',
-              position: 'relative',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            <div style={{ padding: '16px 20px', height: '180px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
-              <Icon icon="lucide:video-off" width="28" height="28" color="#64748b" style={{ marginBottom: '8px' }} />
-              <div style={{ color: '#94a3b8', fontSize: '0.82rem', fontWeight: 700 }}>No signal — cap offline</div>
-              <div style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 600, marginTop: '2px' }}>CAP-C22</div>
-            </div>
-            <div style={{ backgroundColor: '#0f172a', padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ef4444' }} />
-              <span style={{ color: '#ffffff', fontSize: '0.8rem', fontWeight: 700 }}>Cap - 03 offline</span>
-            </div>
-          </div>
+                  {isOffline ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: '#cbd5e1', height: '100%' }}>
+                      <Icon icon="lucide:video-off" width="28" height="28" color="#94a3b8" style={{ marginBottom: '8px' }} />
+                      <div style={{ color: '#cbd5e1', fontSize: '0.82rem', fontWeight: 700 }}>No signal — cap offline</div>
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'right', color: '#ffffff', fontSize: '0.78rem', fontWeight: 700, opacity: 0.9 }}>
+                      {camera.time}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ backgroundColor: '#0f172a', padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: isOffline ? '#ef4444' : '#22c55e' }} />
+                    <span style={{ color: '#ffffff', fontSize: '0.8rem', fontWeight: 700 }}>{camera.label}</span>
+                  </div>
+                  {isSelected && !isOffline && (
+                    <span style={{ color: '#7dd3fc', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.04em' }}>OPEN</span>
+                  )}
+                </div>
+              </button>
+            );
+          })}
         </div>
 
         {/* SECTION 2: VIDEO RECORD CLIPS */}
@@ -210,6 +259,7 @@ export default function CameraPage({ onTabChange, onLogout }) {
 
           {/* FILTERS & SEARCH ROW */}
           <div
+            className="camera-filters"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -220,7 +270,7 @@ export default function CameraPage({ onTabChange, onLogout }) {
             }}
           >
             {/* ENFORCER FILTER TABS */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <div className="camera-tab-row" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               {['All', 'Enforcer 01', 'Enforcer 02', 'Enforcer 03'].map((tab) => {
                 const isActive = activeEnforcerTab === tab;
                 return (
@@ -247,7 +297,7 @@ export default function CameraPage({ onTabChange, onLogout }) {
             </div>
 
             {/* SEARCH & ACTION BUTTONS */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <div className="camera-tools" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
               {/* SEARCH INPUT */}
               <div
                 style={{
@@ -353,6 +403,7 @@ export default function CameraPage({ onTabChange, onLogout }) {
             {filteredClips.map((clip, index) => (
               <div
                 key={index}
+                className="recording-row"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -530,6 +581,128 @@ export default function CameraPage({ onTabChange, onLogout }) {
 
       {/* FOOTER */}
       <Footer />
+
+      {expandedCamera && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.18)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            zIndex: 200,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+          }}
+          onClick={() => setExpandedCameraId(null)}
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '1400px',
+              height: 'min(90vh, 900px)',
+              borderRadius: '28px',
+              overflow: 'hidden',
+              backgroundColor: '#020617',
+              boxShadow: '0 30px 80px rgba(15, 23, 42, 0.45)',
+              border: '1px solid rgba(148, 163, 184, 0.22)',
+              position: 'relative',
+            }}
+          >
+            <div style={{ position: 'absolute', top: '18px', right: '18px', zIndex: 2, display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <span style={{ color: '#e2e8f0', backgroundColor: 'rgba(15, 23, 42, 0.7)', borderRadius: '9999px', padding: '8px 12px', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.08em' }}>
+                {expandedCamera.id}
+              </span>
+              <button
+                type="button"
+                onClick={() => setExpandedCameraId(null)}
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '50%',
+                  border: 'none',
+                  backgroundColor: 'rgba(15, 23, 42, 0.8)',
+                  color: '#ffffff',
+                  fontSize: '1.4rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                aria-label="Close camera view"
+              >
+                ×
+              </button>
+            </div>
+
+            <div
+              style={{
+                height: '100%',
+                background: 'linear-gradient(135deg, rgba(15,23,42,0.4), rgba(2,6,23,0.86))',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                padding: '76px 28px 24px',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#ef4444', display: 'inline-block' }} />
+                  <span style={{ color: '#f8fafc', fontSize: '0.78rem', fontWeight: 900, letterSpacing: '0.12em' }}>LIVE</span>
+                </div>
+                <div style={{ color: '#cbd5e1', fontSize: '0.82rem', fontWeight: 700 }}>{expandedCamera.time}</div>
+              </div>
+
+              <div
+                style={{
+                  flex: 1,
+                  minHeight: '260px',
+                  borderRadius: '18px',
+                  border: '1px solid rgba(148, 163, 184, 0.25)',
+                  background: expandedCamera.image ? `url(${expandedCamera.image}) center/cover no-repeat` : 'radial-gradient(circle at top, rgba(59,130,246,0.3), rgba(15,23,42,0.96) 42%, rgba(2,6,23,1))',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  position: 'relative',
+                  margin: '18px 0 16px',
+                  overflow: 'hidden',
+                }}
+              >
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(2, 6, 23, 0.18)' }} />
+                <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', color: '#f8fafc' }}>
+                  <div style={{ fontSize: 'clamp(2rem, 4vw, 4rem)', fontWeight: 900, letterSpacing: '-0.05em', textShadow: '0 8px 24px rgba(15, 23, 42, 0.85)' }}>{expandedCamera.label}</div>
+                  <div style={{ marginTop: '12px', color: '#f8fafc', fontSize: '1rem', fontWeight: 600, textShadow: '0 6px 20px rgba(15, 23, 42, 0.9)' }}>Camera feed is active and focused in full-screen mode.</div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#22c55e', display: 'inline-block' }} />
+                  <span style={{ color: '#e2e8f0', fontSize: '0.9rem', fontWeight: 700 }}>{expandedCamera.label}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setExpandedCameraId(null)}
+                  style={{
+                    backgroundColor: '#ffffff',
+                    color: '#0f172a',
+                    border: 'none',
+                    borderRadius: '9999px',
+                    padding: '10px 20px',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Back to feeds
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* EXPORT CONFIRMATION MODAL */}
       {showExportModal && (

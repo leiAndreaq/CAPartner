@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -209,6 +209,18 @@ function EnforcerCard({
 export default function OverviewPage({ onTabChange, onLogout }) {
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const [selectedEnforcer, setSelectedEnforcer] = useState(null);
+  const [showEmergencyPopup, setShowEmergencyPopup] = useState(false);
+
+  useEffect(() => {
+    const isDesktop = window.innerWidth >= 768;
+    if (!isDesktop) return undefined;
+
+    const timer = setTimeout(() => {
+      setShowEmergencyPopup(true);
+    }, 8000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const enforcerData = [
     {
@@ -363,10 +375,107 @@ export default function OverviewPage({ onTabChange, onLogout }) {
       `}</style>
 
       {/* NAVBAR COMPONENT */}
-      <Navbar activeTab="Overview" onTabChange={onTabChange} onLogout={onLogout} />
+      <Navbar
+        activeTab="Overview"
+        onTabChange={onTabChange}
+        onLogout={onLogout}
+        showEmergencyPopup={showEmergencyPopup}
+      />
+
+      {showEmergencyPopup && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(12, 18, 22, 0.72)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            zIndex: 110,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+          }}
+          onClick={() => setShowEmergencyPopup(false)}
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '740px',
+              background: '#ef4b4b',
+              borderRadius: '20px',
+              boxShadow: '0 28px 72px rgba(0,0,0,0.38)',
+              overflow: 'hidden',
+              border: '1px solid rgba(255,255,255,0.2)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', color: '#ffffff', fontWeight: 800, letterSpacing: '0.02em' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#ffffff', display: 'inline-block' }} />
+                <span>SOS ALERT</span>
+              </div>
+              <span style={{ opacity: 0.9, fontSize: '0.78rem' }}>9:43 PM</span>
+            </div>
+
+            <div style={{ background: '#081d2e', padding: '22px 20px 18px', color: '#ffffff' }}>
+              <div style={{ fontSize: '2.35rem', fontWeight: 900, letterSpacing: '-0.05em', marginBottom: '10px' }}>
+                Enforcer 02
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#dfeaf0', fontSize: '0.8rem', marginBottom: '20px', fontWeight: 600 }}>
+                <span style={{ color: '#f87171' }}>◉</span>
+                <span>Camarin Road – Deparo – Intersection 2</span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px', marginBottom: '22px' }}>
+                <div style={{ background: 'rgba(148,163,184,0.08)', borderRadius: '12px', padding: '14px 16px', minHeight: '90px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#cbd5e1', fontSize: '0.8rem', fontWeight: 700, marginBottom: '12px' }}>
+                    <Icon icon="mdi:heart-pulse" width="16" height="16" style={{ color: '#f87171' }} />
+                    Heart rate
+                  </div>
+                  <div style={{ fontSize: '2rem', fontWeight: 900, lineHeight: 1, letterSpacing: '-0.05em' }}>
+                    124 <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700 }}>BPM</span>
+                  </div>
+                </div>
+
+                <div style={{ background: 'rgba(148,163,184,0.08)', borderRadius: '12px', padding: '14px 16px', minHeight: '90px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#cbd5e1', fontSize: '0.8rem', fontWeight: 700, marginBottom: '12px' }}>
+                    <Icon icon="fluent:temperature-24-filled" width="16" height="16" style={{ color: '#fbbf24' }} />
+                    Temperature
+                  </div>
+                  <div style={{ fontSize: '2rem', fontWeight: 900, lineHeight: 1, letterSpacing: '-0.05em' }}>
+                    38.1 <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700 }}>°C</span>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEmergencyPopup(false);
+                }}
+                style={{
+                  width: '100%',
+                  border: 'none',
+                  borderRadius: '14px',
+                  padding: '16px 18px',
+                  background: '#ef4b4b',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '1.05rem',
+                  cursor: 'pointer',
+                }}
+              >
+                Acknowledge alert
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MAIN CONTENT BODY */}
-      <main style={{ flex: 1, maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '32px 24px' }}>
+      <main className="overview-main" style={{ flex: 1, maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '32px 24px' }}>
         
         {/* PAGE TITLE HEADER */}
         <div style={{ marginBottom: '32px' }}>
@@ -383,8 +492,8 @@ export default function OverviewPage({ onTabChange, onLogout }) {
 
         {/* ENFORCERS GRID SECTION */}
         <div 
+          className="overview-grid"
           style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', marginBottom: '40px' }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10"
         >
           {enforcerData.map((item) => (
             <EnforcerCard 
@@ -406,10 +515,11 @@ export default function OverviewPage({ onTabChange, onLogout }) {
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '24px' }} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="map-grid overview-map-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '24px' }}>
             
             {/* LARGE EMBEDDED OPENSTREETMAP DISPLAY */}
             <div 
+              className="overview-map-panel"
               onClick={() => handleOpenMap(null)}
               style={{
                 gridColumn: 'span 8',
@@ -462,7 +572,7 @@ export default function OverviewPage({ onTabChange, onLogout }) {
             </div>
 
             {/* DEPLOYED POSTS PANEL */}
-            <div style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column', gap: '12px' }} className="lg:col-span-4 flex flex-col gap-3">
+            <div style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column', gap: '12px' }} className="overview-posts-panel lg:col-span-4 flex flex-col gap-3">
               <div>
                 <h3 style={{ color: '#012b10', fontSize: '1.1rem', fontWeight: 900, margin: '0 0 4px 0' }}>
                   Deployed posts
@@ -502,7 +612,7 @@ export default function OverviewPage({ onTabChange, onLogout }) {
         </div>
 
         {/* BOTTOM DASHBOARD GRID */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '24px' }} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '24px' }} className="overview-dashboard-grid grid grid-cols-1 lg:grid-cols-12 gap-6">
           
           {/* RECENT ALERTS */}
           <div 
@@ -514,7 +624,7 @@ export default function OverviewPage({ onTabChange, onLogout }) {
               overflow: 'hidden',
               boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
             }}
-            className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm"
+            className="overview-alert-card lg:col-span-7 bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm"
           >
             <div 
               style={{
@@ -574,7 +684,7 @@ export default function OverviewPage({ onTabChange, onLogout }) {
           </div>
 
           {/* MEDIA QUEUE & ADMIN ACTIONS */}
-          <div style={{ gridColumn: 'span 5', display: 'flex', flexDirection: 'column', gap: '20px' }} className="lg:col-span-5 flex flex-col gap-5">
+          <div style={{ gridColumn: 'span 5', display: 'flex', flexDirection: 'column', gap: '20px' }} className="overview-side-stack lg:col-span-5 flex flex-col gap-5">
             
             {/* MEDIA QUEUE CARD */}
             <div 
@@ -735,8 +845,6 @@ export default function OverviewPage({ onTabChange, onLogout }) {
 
       </main>
 
-      {/* FOOTER COMPONENT */}
-      <Footer />
 
       {/* FULL-SCREEN INTERACTIVE OPENSTREETMAP MODAL */}
       {isMapModalOpen && (

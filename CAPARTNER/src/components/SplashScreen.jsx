@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import capLogo from '../assets/CAP LOGO.png';
+
+const capLogo = new URL('../assets/CAP LOGO.png', import.meta.url).href;
 
 export default function SplashScreen({ onFinish, duration = 1500 }) {
   const [fadeOut, setFadeOut] = useState(false);

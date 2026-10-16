@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Icon } from '@iconify/react';
-import capLogo from '../assets/CAP LOGO.png';
-import accountMale from '../assets/Account male.png';
+
+const capLogo = new URL('../assets/CAP LOGO.png', import.meta.url).href;
+const accountMale = new URL('../assets/Account Male.png', import.meta.url).href;
 
 export default function LoginPage({ onLoginSuccess }) {
   const [username, setUsername] = useState('');
@@ -18,7 +19,7 @@ export default function LoginPage({ onLoginSuccess }) {
 
   return (
     <div
-      className="min-h-screen w-screen flex items-center justify-center p-6 box-border font-sans"
+      className="login-shell min-h-screen w-screen flex items-center justify-center p-6 box-border font-sans"
       style={{
         minHeight: '100vh',
         width: '100vw',
@@ -28,11 +29,12 @@ export default function LoginPage({ onLoginSuccess }) {
         justifyContent: 'center',
         padding: '24px',
         boxSizing: 'border-box',
+        overflow: 'hidden',
       }}
     >
       {/* MAIN CARD CONTAINER */}
       <div
-        className="flex flex-col md:flex-row w-full max-w-[920px] min-h-[540px] rounded-[28px] p-3 box-border"
+        className="login-card flex flex-col md:flex-row w-full max-w-[920px] min-h-[540px] rounded-[28px] p-3 box-border"
         style={{
           display: 'flex',
           flexDirection: 'row',
@@ -49,7 +51,7 @@ export default function LoginPage({ onLoginSuccess }) {
         
         {/* LEFT PANEL: FORM SECTION */}
         <div
-          className="flex-1 p-8 md:px-10 md:py-8 flex flex-col justify-between"
+          className="login-form-panel flex-1 p-8 md:px-10 md:py-8 flex flex-col justify-between"
           style={{
             flex: 1,
             padding: '32px 40px',
@@ -156,7 +158,15 @@ export default function LoginPage({ onLoginSuccess }) {
                 >
                   Password
                 </label>
-                <div className="relative" style={{ position: 'relative' }}>
+                <div
+                  className="relative"
+                  style={{
+                    position: 'relative',
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
                   <input
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Enter your password"
@@ -180,26 +190,32 @@ export default function LoginPage({ onLoginSuccess }) {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer p-0 flex items-center"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    className="absolute bg-transparent border-none cursor-pointer p-0 flex items-center justify-center"
                     style={{
                       position: 'absolute',
                       right: '12px',
                       top: '50%',
                       transform: 'translateY(-50%)',
-                      background: 'none',
+                      background: 'transparent',
                       border: 'none',
                       cursor: 'pointer',
                       padding: 0,
                       display: 'flex',
                       alignItems: 'center',
+                      justifyContent: 'center',
                       color: '#064018',
+                      width: '22px',
+                      height: '22px',
+                      zIndex: 2,
+                      lineHeight: 0,
                     }}
                   >
                     <Icon
                       icon={showPassword ? 'mdi:eye-off' : 'mdi:eye'}
-                      className="w-5.5 h-5.5"
                       width="22"
                       height="22"
+                      style={{ display: 'block' }}
                     />
                   </button>
                 </div>
@@ -315,7 +331,7 @@ export default function LoginPage({ onLoginSuccess }) {
 
         {/* RIGHT PANEL: BRAND BANNER */}
         <div
-          className="flex-1 p-6 flex flex-col items-center justify-center text-center rounded-b-[20px] md:rounded-bl-none md:rounded-r-[20px] box-border"
+          className="login-brand-panel flex-1 p-6 flex flex-col items-center justify-center text-center rounded-b-[20px] md:rounded-bl-none md:rounded-r-[20px] box-border"
           style={{
             flex: 1,
             backgroundColor: '#033015',
@@ -346,20 +362,11 @@ export default function LoginPage({ onLoginSuccess }) {
                 gap: '6px',
               }}
             >
-              <span
-                className="h-1.5 w-1.5 rounded-full"
-                style={{
-                  height: '6px',
-                  width: '6px',
-                  backgroundColor: '#22c55e',
-                  borderRadius: '50%',
-                }}
-              />
               SMART CAP MONITORING CONSOLE
             </div>
           </div>
 
-          <div className="flex justify-center mb-0" style={{ display: 'flex', justifyContent: 'center', marginBottom: '0px' }}>
+          <div className="flex justify-center mb-0 desktop-brand-logo" style={{ display: 'flex', justifyContent: 'center', marginBottom: '0px' }}>
             <img
               src={capLogo}
               alt="CAPartner Logo"

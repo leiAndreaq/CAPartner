@@ -180,11 +180,12 @@ export default function MonitoringPage({ onTabChange, onLogout }) {
       <Navbar activeTab="Monitoring" onTabChange={onTabChange} onLogout={onLogout} />
 
       {/* MAIN CONTENT AREA */}
-      <main style={{ flex: 1, maxWidth: '1200px', width: '100%', margin: '0 auto', padding: '40px 24px' }}>
+      <main className="monitoring-main" style={{ flex: 1, maxWidth: '1200px', width: '100%', margin: '0 auto', padding: '40px 24px' }}>
         
         {/* PAGE TITLE */}
-        <div style={{ marginBottom: '24px' }}>
+        <div className="monitoring-header" style={{ marginBottom: '24px' }}>
           <h1
+            className="monitoring-title"
             style={{
               color: '#033015',
               fontSize: '2.5rem',
@@ -195,13 +196,14 @@ export default function MonitoringPage({ onTabChange, onLogout }) {
           >
             Enforcer Monitoring
           </h1>
-          <p style={{ color: '#16a34a', fontWeight: 600, fontSize: '0.9rem', margin: 0 }}>
+          <p className="monitoring-subtitle" style={{ color: '#16a34a', fontWeight: 600, fontSize: '0.9rem', margin: 0 }}>
             Vitals, connection and health history
           </p>
         </div>
 
         {/* CONTROLS ROW: FILTER TABS + ADD ENFORCER BUTTON */}
         <div
+          className="monitoring-controls"
           style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -212,7 +214,7 @@ export default function MonitoringPage({ onTabChange, onLogout }) {
           }}
         >
           {/* FILTER BUTTONS */}
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <div className="monitoring-filters" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             {filterTabs.map((tab) => {
               const isActive = activeFilter === tab;
               return (
@@ -220,6 +222,7 @@ export default function MonitoringPage({ onTabChange, onLogout }) {
                   key={tab}
                   type="button"
                   onClick={() => setActiveFilter(tab)}
+                  className="monitoring-filter-btn"
                   style={{
                     backgroundColor: isActive ? '#033015' : '#e2e8f0',
                     color: isActive ? '#ffffff' : '#334155',
@@ -242,6 +245,7 @@ export default function MonitoringPage({ onTabChange, onLogout }) {
           <button
             type="button"
             onClick={() => setIsAddModalOpen(true)}
+            className="monitoring-add-btn"
             style={{
               backgroundColor: '#033015',
               color: '#ffffff',
@@ -264,6 +268,7 @@ export default function MonitoringPage({ onTabChange, onLogout }) {
         {/* CONDITION 1: IF 'All' IS SELECTED -> SHOW TABLE */}
         {activeFilter === 'All' ? (
           <div
+            className="monitoring-table-wrap"
             style={{
               width: '100%',
               overflowX: 'auto',
@@ -274,6 +279,7 @@ export default function MonitoringPage({ onTabChange, onLogout }) {
             }}
           >
             <table
+              className="monitoring-table"
               style={{
                 width: '100%',
                 tableLayout: 'fixed',
@@ -307,13 +313,14 @@ export default function MonitoringPage({ onTabChange, onLogout }) {
                         borderBottom: index !== filteredEnforcers.length - 1 ? '1px solid #033015' : 'none',
                       }}
                     >
-                      <td style={{ padding: '18px 16px', fontWeight: 800, color: '#0f172a', borderRight: '1px solid #033015' }}>
+                      <td data-label="No." style={{ padding: '18px 16px', fontWeight: 800, color: '#0f172a', borderRight: '1px solid #033015' }}>
                         {item.no}
                       </td>
-                      <td style={{ padding: '18px 16px', fontWeight: 900, color: '#033015', borderRight: '1px solid #033015' }}>
+                      <td data-label="CAP ID No." style={{ padding: '18px 16px', fontWeight: 900, color: '#033015', borderRight: '1px solid #033015' }}>
                         {item.capId}
                       </td>
                       <td
+                        data-label="Email"
                         title={item.email}
                         style={{
                           padding: '18px 16px',
@@ -329,13 +336,13 @@ export default function MonitoringPage({ onTabChange, onLogout }) {
                       >
                         {item.email}
                       </td>
-                      <td style={{ padding: '18px 16px', fontWeight: 800, color: '#0f172a', borderRight: '1px solid #033015' }}>
+                      <td data-label="Badge No." style={{ padding: '18px 16px', fontWeight: 800, color: '#0f172a', borderRight: '1px solid #033015' }}>
                         {item.badgeNo}
                       </td>
-                      <td style={{ padding: '18px 16px', fontWeight: 800, color: '#0f172a', borderRight: '1px solid #033015' }}>
+                      <td data-label="Location" style={{ padding: '18px 16px', fontWeight: 800, color: '#0f172a', borderRight: '1px solid #033015' }}>
                         {item.location}
                       </td>
-                      <td style={{ padding: '18px 16px' }}>
+                      <td data-label="Action" style={{ padding: '18px 16px' }}>
                         <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
                           <button
                             type="button"

@@ -140,7 +140,7 @@ export default function ActivityPage({ onTabChange, onLogout }) {
       <Navbar activeTab="Activity Log" onTabChange={onTabChange} onLogout={onLogout} />
 
       {/* MAIN CONTENT AREA */}
-      <main style={{ flex: 1, maxWidth: '1180px', width: '100%', margin: '0 auto', padding: '36px 24px' }}>
+      <main className="activity-main" style={{ flex: 1, maxWidth: '1180px', width: '100%', margin: '0 auto', padding: '36px 24px' }}>
         
         {/* HEADER SECTION */}
         <div style={{ marginBottom: '24px' }}>
@@ -256,9 +256,10 @@ export default function ActivityPage({ onTabChange, onLogout }) {
           </div>
 
           {/* AUDIT ENTRIES LIST */}
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div className="audit-list" style={{ display: 'flex', flexDirection: 'column' }}>
             {auditEntries.map((entry) => (
               <div
+                className="audit-row"
                 key={entry.id}
                 style={{
                   display: 'flex',
@@ -269,7 +270,7 @@ export default function ActivityPage({ onTabChange, onLogout }) {
                 }}
               >
                 {/* TIME & DATE COLUMN */}
-                <div style={{ minWidth: '110px' }}>
+                <div className="audit-time" style={{ minWidth: '110px' }}>
                   <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#0f172a' }}>
                     {entry.time}
                   </div>
@@ -280,6 +281,7 @@ export default function ActivityPage({ onTabChange, onLogout }) {
 
                 {/* CATEGORY ICON BADGE */}
                 <div
+                  className="audit-badge"
                   style={{
                     width: '36px',
                     height: '36px',
@@ -295,7 +297,7 @@ export default function ActivityPage({ onTabChange, onLogout }) {
                 </div>
 
                 {/* DETAILS COLUMN */}
-                <div style={{ flex: 1 }}>
+                <div className="audit-detail" style={{ flex: 1 }}>
                   <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a' }}>
                     {entry.title}
                   </div>
@@ -306,6 +308,7 @@ export default function ActivityPage({ onTabChange, onLogout }) {
 
                 {/* ADMIN USER COLUMN */}
                 <div
+                  className="audit-user"
                   style={{
                     fontSize: '0.85rem',
                     fontWeight: 800,
