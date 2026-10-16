@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Icon } from '@iconify/react';
-import capLogo from '../assets/CAP LOGO.png';
-import accountMale from '../assets/Account male.png';
+
+const capLogo = new URL('../assets/CAP LOGO.png', import.meta.url).href;
+const accountMale = new URL('../assets/Account Male.png', import.meta.url).href;
 
 export default function LoginPage({ onLoginSuccess }) {
   const [username, setUsername] = useState('');

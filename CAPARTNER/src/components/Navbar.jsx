@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Icon } from '@iconify/react';
-import capLogo from '../assets/CAP LOGO.png';
+
+const capLogo = new URL('../assets/CAP LOGO.png', import.meta.url).href;
 
 export default function Navbar({
   activeTab = 'Overview',
