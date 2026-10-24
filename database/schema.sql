@@ -4,7 +4,12 @@
 -- Run this on an EMPTY database. It is all-or-nothing: if anything fails,
 -- nothing is created, so you can fix the problem and run it again.
 --
---   psql -d cap_system -v ON_ERROR_STOP=1 -f schema.sql
+--   psql -U postgres -d cap_system -v ON_ERROR_STOP=1 -f schema.sql
+--   then: psql -U postgres -d cap_system -v ON_ERROR_STOP=1 -f seed.sql
+--
+-- This file already includes migrations 001 and 002. Do NOT run the files in
+-- migrations\ on a database built from this file. They are only for older
+-- databases that were built before those changes.
 --
 -- Part 1: who and what     (stations, sectors, admins, caps, enforcers)
 -- Part 2: what caps report (telemetry, alerts, connection events)
@@ -83,9 +88,16 @@ CREATE TABLE enforcers (
   cap_id                    UUID UNIQUE REFERENCES caps(id) ON DELETE SET NULL,
   created_by_admin_id       UUID REFERENCES admins(id),
   is_active                 BOOLEAN NOT NULL DEFAULT TRUE,
-  created_at                TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at                TIMESTAMPTZ NOT NULL DEFAULT now(),
+  failed_login_count        INT NOT NULL DEFAULT 0 CHECK (failed_login_count >= 0),
+  is_locked                 BOOLEAN NOT NULL DEFAULT FALSE,
+  device_key_hash           TEXT,          -- registered phone (empty = next login needs 2FA)
+  device_registered_at      TIMESTAMPTZ,   -- logout / force logout empties both
+  CONSTRAINT enforcers_device_both_or_none
+      CHECK ((device_key_hash IS NULL) = (device_registered_at IS NULL))
 );
-CREATE UNIQUE INDEX idx_enforcers_email ON enforcers (lower(email));
+-- Email is unique only among active enforcers (a deleted/hidden account frees its email).
+CREATE UNIQUE INDEX idx_enforcers_email_active ON enforcers (lower(email)) WHERE is_active;
 CREATE INDEX idx_enforcers_sector ON enforcers (sector_id);
 
 -- ======================= PART 2 =======================
@@ -170,20 +182,19 @@ CREATE TABLE connection_events (
 CREATE INDEX idx_conn_events_cap_time ON connection_events (cap_id, occurred_at DESC);
 
 -- ======================= PART 3 =======================
--- Email codes. Enforcers no longer need a first-login code.
+-- Email codes (2FA for admins and enforcers, and admin email/password changes).
 CREATE TABLE otp_codes (
   id           BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   admin_id     UUID REFERENCES admins(id)    ON DELETE CASCADE,
   enforcer_id  UUID REFERENCES enforcers(id) ON DELETE CASCADE,
   purpose      VARCHAR(15) NOT NULL
-               CHECK (purpose IN ('login_2fa','reset_password')),
+               CHECK (purpose IN ('login_2fa','reset_password','change_email','change_password')),
   code_hash    TEXT NOT NULL,                  -- never the real code
   attempts     INT  NOT NULL DEFAULT 0 CHECK (attempts >= 0),   -- wrong tries
   expires_at   TIMESTAMPTZ NOT NULL,
   used_at      TIMESTAMPTZ,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CHECK ((admin_id IS NULL) <> (enforcer_id IS NULL)),          -- belongs to exactly one
-  CHECK (purpose <> 'login_2fa' OR admin_id IS NOT NULL)        -- 2FA is admin-only
+  CHECK ((admin_id IS NULL) <> (enforcer_id IS NULL))           -- belongs to exactly one
 );
 CREATE INDEX idx_otp_admin    ON otp_codes (admin_id,    purpose, created_at DESC);
 CREATE INDEX idx_otp_enforcer ON otp_codes (enforcer_id, purpose, created_at DESC);
@@ -201,12 +212,14 @@ CREATE TABLE app_settings (
                              CHECK (auto_signout_minutes BETWEEN 1 AND 240),
   max_failed_logins          INT NOT NULL DEFAULT 3
                              CHECK (max_failed_logins BETWEEN 1 AND 10),
-  otp_valid_minutes          INT NOT NULL DEFAULT 5
+  otp_valid_minutes          INT NOT NULL DEFAULT 15
                              CHECK (otp_valid_minutes BETWEEN 1 AND 30),
   temp_password_valid_hours  INT NOT NULL DEFAULT 72
                              CHECK (temp_password_valid_hours BETWEEN 1 AND 336),
   updated_by_admin_id        UUID REFERENCES admins(id),
-  updated_at                 TIMESTAMPTZ NOT NULL DEFAULT now()
+  updated_at                 TIMESTAMPTZ NOT NULL DEFAULT now(),
+  max_enforcers              INT NOT NULL DEFAULT 3
+                             CHECK (max_enforcers BETWEEN 1 AND 50)
 );
 INSERT INTO app_settings DEFAULT VALUES;      -- the one row
 

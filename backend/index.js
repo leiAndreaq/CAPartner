@@ -1,16 +1,9 @@
 require('dotenv').config();
 const express = require('express');
-const { Pool } = require('pg');
+const pool = require('./db');
 
 const app = express();
-
-const pool = new Pool({
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-});
+app.use(express.json());
 
 app.get('/health', async (req, res) => {
   try {
@@ -20,6 +13,20 @@ app.get('/health', async (req, res) => {
     console.error(err.message);
     res.status(500).json({ status: 'error' });
   }
+});
+
+app.use('/admin/account', require('./routes/adminAccount'));
+app.use('/admin', require('./routes/adminAuth'));
+app.use('/enforcers', require('./routes/enforcers'));
+app.use('/enforcer', require('./routes/enforcerAuth'));
+
+// Safety net: never show error details or file paths to the outside world.
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'Bad request.' });
+  }
+  console.error(err.message);
+  res.status(500).json({ error: 'Something went wrong.' });
 });
 
 app.listen(process.env.PORT, () => {
