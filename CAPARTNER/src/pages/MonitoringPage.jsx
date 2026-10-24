@@ -1,132 +1,225 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import {
+  listEnforcers,
+  createEnforcer,
+  deleteEnforcer,
+  forceLogoutEnforcer,
+  resendEnforcerLogin,
+  unlockEnforcer,
+  listSectors,
+  listCaps,
+} from '../api';
 
-export default function MonitoringPage({ onTabChange, onLogout }) {
+const EMPTY_FORM = {
+  fullName: '',
+  email: '',
+  badgeNo: '',
+  contactNo: '',
+  sectorId: '',
+  capCode: '',
+};
+
+// TURN ONE ENFORCER FROM THE BACKEND INTO ONE ROW OF THE TABLE.
+// Vitals, battery and GPS show "—" until the cap sends real readings.
+function toRow(enforcer, index) {
+  const no = index + 1;
+  return {
+    id: enforcer.id,
+    no,
+    capId: enforcer.capCode || '—',
+    filterTag: `Enforcer ${String(no).padStart(2, '0')}`,
+    fullName: enforcer.fullName,
+    email: enforcer.email,
+    badgeNo: enforcer.badgeNo || '—',
+    location: enforcer.sector || '—',
+    isLocked: enforcer.isLocked,
+    hasSetPassword: enforcer.hasSetPassword,
+    tempPasswordExpired: enforcer.tempPasswordExpired,
+    phoneRegistered: enforcer.phoneRegistered,
+    heartRate: '—',
+    temp: '—',
+    battery: '—',
+    lastSync: '—',
+    connection: 'Offline',
+    coords: '—',
+    alertsCount: 0,
+    mediaCount: 0,
+  };
+}
+
+export default function MonitoringPage({ onTabChange, onLogout, onSessionEnded }) {
   // Always default to 'All' when arriving at or navigating back to Monitoring
   const [activeFilter, setActiveFilter] = useState('All');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  // MOCK ENFORCER TABLE DATA
-  const [enforcers, setEnforcers] = useState([
-    {
-      no: 1,
-      capId: 'CAP 001',
-      filterTag: 'Enforcer 01',
-      fullName: 'Jeremy Denzo',
-      email: 'jeypi.denzo31@gmail.com',
-      badgeNo: 'PSTMD 2026 084',
-      location: 'Sector 4 - Vicas Market',
-      heartRate: '132',
-      temp: '38.4',
-      battery: '46%',
-      lastSync: '14:32:08',
-      connection: 'Internet',
-      coords: '14.7539° N, 121.0513° E',
-      alertsCount: 2,
-      mediaCount: 2,
-    },
-    {
-      no: 2,
-      capId: 'CAP 002',
-      filterTag: 'Enforcer 02',
-      fullName: 'Lei Aguila',
-      email: 'lei.aguila@gmail.com',
-      badgeNo: 'PSTMD 2026 083',
-      location: 'Sector 5 - Almar, Zabarte',
-      heartRate: '98',
-      temp: '36.8',
-      battery: '18%',
-      lastSync: '14:30:15',
-      connection: 'LoRa fallback',
-      coords: '14.7482° N, 121.0421° E',
-      alertsCount: 1,
-      mediaCount: 0,
-    },
-    {
-      no: 3,
-      capId: 'CAP 003',
-      filterTag: 'Enforcer 03',
-      fullName: 'Juban Bamba',
-      email: 'juban.bamba@gmail.com',
-      badgeNo: 'PSTMD 2026 082',
-      location: 'Sector 6 - Zapote Road',
-      heartRate: '—',
-      temp: '—',
-      battery: '0%',
-      lastSync: '11:15:00',
-      connection: 'Offline',
-      coords: '14.7391° N, 121.0380° E',
-      alertsCount: 0,
-      mediaCount: 0,
-    },
-  ]);
+  // REAL ENFORCERS, SECTORS AND CAPS FROM THE BACKEND
+  const [enforcers, setEnforcers] = useState([]);
+  const [maxEnforcers, setMaxEnforcers] = useState(3);
+  const [sectors, setSectors] = useState([]);
+  const [caps, setCaps] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  // notice = message on the page: { type: 'success' | 'error', text }
+  const [notice, setNotice] = useState(null);
+  const [busyAction, setBusyAction] = useState('');
 
   // NEW ENFORCER FORM STATE
-  const [newEnforcer, setNewEnforcer] = useState({
-    fullName: '',
-    email: '',
-    badgeNo: '',
-    contactNo: '',
-    sector: '',
-    capId: '',
-  });
+  const [newEnforcer, setNewEnforcer] = useState(EMPTY_FORM);
+  const [formError, setFormError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
-  const filterTabs = ['All', 'Enforcer 01', 'Enforcer 02', 'Enforcer 03'];
+  // A 401 ANSWER MEANS THE ADMIN LOGIN PASS ENDED: GO BACK TO LOGIN
+  const handleApiError = (err, showError) => {
+    if (err.status === 401 && onSessionEnded) {
+      onSessionEnded('Your login ended. Please log in again.');
+      return;
+    }
+    showError(err.message);
+  };
 
-  const selectedEnforcerData =
-    enforcers.find((item) => item.filterTag === activeFilter) || enforcers[0];
+  // LOAD (OR RELOAD) EVERYTHING THIS PAGE NEEDS
+  const fetchAll = () => Promise.all([listEnforcers(), listSectors(), listCaps()]);
+
+  const applyData = ([enforcerData, sectorData, capData]) => {
+    setEnforcers(enforcerData.enforcers.map(toRow));
+    setMaxEnforcers(enforcerData.maxEnforcers);
+    setSectors(sectorData.sectors);
+    setCaps(capData.caps);
+  };
+
+  const showLoadError = (err) => handleApiError(err, (text) => setNotice({ type: 'error', text }));
+
+  const loadData = async () => {
+    try {
+      applyData(await fetchAll());
+    } catch (err) {
+      showLoadError(err);
+    }
+  };
+
+  // FIRST LOAD WHEN THE PAGE OPENS
+  useEffect(() => {
+    let cancelled = false;
+    fetchAll()
+      .then((data) => {
+        if (!cancelled) applyData(data);
+      })
+      .catch((err) => {
+        if (!cancelled) showLoadError(err);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const filterTabs = ['All', ...enforcers.map((item) => item.filterTag)];
+
+  // If the selected enforcer was deleted, fall back to the table
+  const selectedEnforcerData = enforcers.find((item) => item.filterTag === activeFilter);
+  const currentFilter = selectedEnforcerData ? activeFilter : 'All';
 
   const filteredEnforcers =
-    activeFilter === 'All'
+    currentFilter === 'All'
       ? enforcers
-      : enforcers.filter((item) => item.filterTag === activeFilter);
+      : enforcers.filter((item) => item.filterTag === currentFilter);
 
-  // DELETE HANDLER
-  const handleDelete = (capId) => {
-    setEnforcers((prev) => prev.filter((item) => item.capId !== capId));
+  const isFull = enforcers.length >= maxEnforcers;
+
+  // DELETE HANDLER (HIDES THE ACCOUNT; HISTORY IS KEPT, CAP IS FREED)
+  const handleDelete = async (item) => {
+    const sure = window.confirm(
+      `Delete ${item.fullName}?\n\nThey will be logged out and can no longer log in. Their history is kept, and ${item.capId} becomes free.`
+    );
+    if (!sure) return;
+    setBusyAction(`delete-${item.id}`);
+    try {
+      const result = await deleteEnforcer(item.id);
+      setNotice({ type: 'success', text: result.message });
+      setActiveFilter('All');
+      await loadData();
+    } catch (err) {
+      handleApiError(err, (text) => setNotice({ type: 'error', text }));
+    } finally {
+      setBusyAction('');
+    }
+  };
+
+  // FORCE LOGOUT / RESEND LOGIN / UNLOCK FOR ONE ENFORCER
+  const runAction = async (item, action) => {
+    const actions = {
+      forceLogout: {
+        call: forceLogoutEnforcer,
+        confirm: `Force logout ${item.fullName}?\n\nTheir phone is logged out now. Next login needs password + email code.`,
+      },
+      resend: {
+        call: resendEnforcerLogin,
+        confirm: `Send ${item.fullName} a NEW temporary password?\n\nTheir current password stops working and their phone is logged out.`,
+      },
+      unlock: { call: unlockEnforcer, confirm: null },
+    };
+    const chosen = actions[action];
+    if (chosen.confirm && !window.confirm(chosen.confirm)) return;
+    setBusyAction(`${action}-${item.id}`);
+    try {
+      const result = await chosen.call(item.id);
+      setNotice({ type: 'success', text: result.message });
+      await loadData();
+    } catch (err) {
+      handleApiError(err, (text) => setNotice({ type: 'error', text }));
+    } finally {
+      setBusyAction('');
+    }
   };
 
   // CLEAR FORM HANDLER
   const handleClearForm = () => {
-    setNewEnforcer({
-      fullName: '',
-      email: '',
-      badgeNo: '',
-      contactNo: '',
-      sector: '',
-      capId: '',
-    });
+    setNewEnforcer(EMPTY_FORM);
+    setFormError('');
   };
 
-  // ADD ENFORCER HANDLER
-  const handleAddSubmit = (e) => {
-    e.preventDefault();
-    if (!newEnforcer.email || !newEnforcer.fullName) return;
-
-    const nextNo = enforcers.length + 1;
-    const addedItem = {
-      no: nextNo,
-      capId: newEnforcer.capId || `CAP 00${nextNo}`,
-      filterTag: `Enforcer 0${nextNo}`,
-      fullName: newEnforcer.fullName,
-      email: newEnforcer.email,
-      badgeNo: newEnforcer.badgeNo || 'PSTMD 2026 088',
-      location: newEnforcer.sector || 'Sector 4 - Vicas Market',
-      heartRate: '75',
-      temp: '36.5',
-      battery: '100%',
-      lastSync: 'Just now',
-      connection: 'Internet',
-      coords: '14.7500° N, 121.0500° E',
-      alertsCount: 0,
-      mediaCount: 0,
-    };
-
-    setEnforcers((prev) => [...prev, addedItem]);
+  const openAddModal = () => {
     handleClearForm();
-    setIsAddModalOpen(false);
+    setIsAddModalOpen(true);
+  };
+
+  // ADD ENFORCER HANDLER: THE BACKEND MAKES THE ACCOUNT AND EMAILS THE TEMPORARY PASSWORD
+  const handleAddSubmit = async (e) => {
+    e.preventDefault();
+    if (!newEnforcer.fullName.trim() || !newEnforcer.email.trim()) {
+      setFormError('Full name and email are required.');
+      return;
+    }
+    if (!newEnforcer.sectorId) {
+      setFormError('Please select a sector.');
+      return;
+    }
+
+    setFormError('');
+    setIsSaving(true);
+    try {
+      const result = await createEnforcer({
+        fullName: newEnforcer.fullName.trim(),
+        email: newEnforcer.email.trim(),
+        sectorId: Number(newEnforcer.sectorId),
+        badgeNo: newEnforcer.badgeNo.trim(),
+        contactNo: newEnforcer.contactNo.trim(),
+        capCode: newEnforcer.capCode,
+      });
+      setNotice({ type: result.emailSent ? 'success' : 'error', text: result.message });
+      handleClearForm();
+      setIsAddModalOpen(false);
+      await loadData();
+    } catch (err) {
+      handleApiError(err, setFormError);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -216,7 +309,7 @@ export default function MonitoringPage({ onTabChange, onLogout }) {
           {/* FILTER BUTTONS */}
           <div className="monitoring-filters" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             {filterTabs.map((tab) => {
-              const isActive = activeFilter === tab;
+              const isActive = currentFilter === tab;
               return (
                 <button
                   key={tab}
@@ -244,29 +337,65 @@ export default function MonitoringPage({ onTabChange, onLogout }) {
           {/* ADD ENFORCER BUTTON */}
           <button
             type="button"
-            onClick={() => setIsAddModalOpen(true)}
+            onClick={openAddModal}
+            disabled={isFull || isLoading}
+            title={isFull ? `Only ${maxEnforcers} enforcer accounts are allowed. Delete one first.` : ''}
             className="monitoring-add-btn"
             style={{
-              backgroundColor: '#033015',
+              backgroundColor: isFull ? '#94a3b8' : '#033015',
               color: '#ffffff',
               border: 'none',
               borderRadius: '9999px',
               padding: '12px 28px',
               fontWeight: 900,
               fontSize: '0.95rem',
-              cursor: 'pointer',
+              cursor: isFull ? 'not-allowed' : 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '8px',
               boxShadow: '0 4px 12px rgba(3, 48, 21, 0.25)',
             }}
           >
-            + Add Enforcer
+            + Add Enforcer ({enforcers.length}/{maxEnforcers})
           </button>
         </div>
 
+        {/* MESSAGE FROM THE LAST ACTION (SUCCESS OR ERROR) */}
+        {notice && (
+          <div
+            role={notice.type === 'error' ? 'alert' : 'status'}
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '12px',
+              backgroundColor: notice.type === 'error' ? '#fef2f2' : '#f0fdf4',
+              border: `1px solid ${notice.type === 'error' ? '#fca5a5' : '#86efac'}`,
+              color: notice.type === 'error' ? '#dc2626' : '#033015',
+              padding: '12px 18px',
+              borderRadius: '12px',
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              marginBottom: '20px',
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Icon icon={notice.type === 'error' ? 'mdi:alert-circle' : 'mdi:check-circle'} width="18" height="18" />
+              {notice.text}
+            </span>
+            <button
+              type="button"
+              onClick={() => setNotice(null)}
+              aria-label="Close message"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontWeight: 900 }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {/* CONDITION 1: IF 'All' IS SELECTED -> SHOW TABLE */}
-        {activeFilter === 'All' ? (
+        {currentFilter === 'All' ? (
           <div
             className="monitoring-table-wrap"
             style={{
@@ -302,13 +431,13 @@ export default function MonitoringPage({ onTabChange, onLogout }) {
                 {filteredEnforcers.length === 0 ? (
                   <tr>
                     <td colSpan={6} style={{ padding: '32px', color: '#64748b', fontWeight: 600 }}>
-                      No enforcers found.
+                      {isLoading ? 'Loading enforcers...' : 'No enforcers yet. Click "+ Add Enforcer" to create one.'}
                     </td>
                   </tr>
                 ) : (
                   filteredEnforcers.map((item, index) => (
                     <tr
-                      key={item.capId}
+                      key={item.id}
                       style={{
                         borderBottom: index !== filteredEnforcers.length - 1 ? '1px solid #033015' : 'none',
                       }}
@@ -362,7 +491,8 @@ export default function MonitoringPage({ onTabChange, onLogout }) {
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleDelete(item.capId)}
+                            onClick={() => handleDelete(item)}
+                            disabled={busyAction === `delete-${item.id}`}
                             style={{
                               backgroundColor: '#ffffff',
                               color: '#033015',
@@ -374,7 +504,7 @@ export default function MonitoringPage({ onTabChange, onLogout }) {
                               cursor: 'pointer',
                             }}
                           >
-                            Delete
+                            {busyAction === `delete-${item.id}` ? '...' : 'Delete'}
                           </button>
                         </div>
                       </td>
@@ -404,7 +534,7 @@ export default function MonitoringPage({ onTabChange, onLogout }) {
                     Vitals across this shift
                   </h3>
                   <p style={{ margin: '4px 0 0 0', color: '#94a3b8', fontSize: '0.75rem', fontWeight: 600 }}>
-                    09:05 - 14:35 · Sampled every 60s
+                    No readings yet · waiting for {selectedEnforcerData.capId} to connect · Sampled every 60s
                   </p>
                 </div>
 
@@ -564,6 +694,112 @@ export default function MonitoringPage({ onTabChange, onLogout }) {
               </div>
             </div>
 
+            {/* CARD: ACCOUNT (ADMIN ACTIONS FOR THIS ENFORCER) */}
+            <div
+              style={{
+                backgroundColor: '#ffffff',
+                borderRadius: '20px',
+                border: '1.5px solid #e2e8f0',
+                padding: '24px',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.03)',
+              }}
+            >
+              <h3 style={{ margin: '0 0 4px 0', color: '#033015', fontSize: '1.1rem', fontWeight: 900 }}>
+                Account
+              </h3>
+              <p style={{ margin: '0 0 16px 0', color: '#94a3b8', fontSize: '0.75rem', fontWeight: 600 }}>
+                {selectedEnforcerData.fullName} · {selectedEnforcerData.email}
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.85rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#64748b', fontWeight: 700 }}>First login</span>
+                  <span style={{ fontWeight: 800, color: selectedEnforcerData.tempPasswordExpired ? '#dc2626' : '#0f172a' }}>
+                    {selectedEnforcerData.hasSetPassword
+                      ? 'Done (own password set)'
+                      : selectedEnforcerData.tempPasswordExpired
+                        ? 'Temporary password expired: use Resend login'
+                        : 'Waiting (temporary password sent)'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#64748b', fontWeight: 700 }}>Phone</span>
+                  <span style={{ fontWeight: 800, color: '#0f172a' }}>
+                    {selectedEnforcerData.phoneRegistered ? 'Logged in on a registered phone' : 'Not logged in'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#64748b', fontWeight: 700 }}>Account</span>
+                  <span
+                    style={{
+                      backgroundColor: selectedEnforcerData.isLocked ? '#fee2e2' : '#dcfce7',
+                      color: selectedEnforcerData.isLocked ? '#dc2626' : '#15803d',
+                      padding: '4px 16px',
+                      borderRadius: '9999px',
+                      fontSize: '0.75rem',
+                      fontWeight: 900,
+                    }}
+                  >
+                    {selectedEnforcerData.isLocked ? 'Locked (3 wrong passwords)' : 'Active'}
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '20px' }}>
+                {[
+                  { action: 'forceLogout', label: 'Force logout', icon: 'lucide:log-out', show: selectedEnforcerData.phoneRegistered },
+                  { action: 'resend', label: 'Resend login', icon: 'lucide:mail', show: true },
+                  { action: 'unlock', label: 'Unlock', icon: 'lucide:unlock', show: selectedEnforcerData.isLocked },
+                ]
+                  .filter((b) => b.show)
+                  .map((b) => (
+                    <button
+                      key={b.action}
+                      type="button"
+                      onClick={() => runAction(selectedEnforcerData, b.action)}
+                      disabled={busyAction !== ''}
+                      style={{
+                        backgroundColor: '#ffffff',
+                        border: '1.5px solid #033015',
+                        borderRadius: '12px',
+                        padding: '10px 18px',
+                        fontWeight: 800,
+                        fontSize: '0.8rem',
+                        color: '#033015',
+                        cursor: busyAction ? 'wait' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                      }}
+                    >
+                      <Icon icon={b.icon} width="16" height="16" />
+                      {busyAction === `${b.action}-${selectedEnforcerData.id}` ? 'Please wait...' : b.label}
+                    </button>
+                  ))}
+                <button
+                  type="button"
+                  onClick={() => handleDelete(selectedEnforcerData)}
+                  disabled={busyAction !== ''}
+                  style={{
+                    backgroundColor: '#ffffff',
+                    border: '1.5px solid #dc2626',
+                    borderRadius: '12px',
+                    padding: '10px 18px',
+                    fontWeight: 800,
+                    fontSize: '0.8rem',
+                    color: '#dc2626',
+                    cursor: busyAction ? 'wait' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                >
+                  <Icon icon="lucide:trash-2" width="16" height="16" />
+                  Delete account
+                </button>
+              </div>
+            </div>
+
             {/* CARD 3: LOCATION & MOVEMENT */}
             <div
               style={{
@@ -633,42 +869,13 @@ export default function MonitoringPage({ onTabChange, onLogout }) {
                 Connection history
               </h3>
               <p style={{ margin: '4px 0 18px 0', color: '#94a3b8', fontSize: '0.75rem', fontWeight: 600 }}>
-                Internet / LoRa switch events for {selectedEnforcerData.capId} this shift
+                Internet / LoRa switch events for {selectedEnforcerData.capId}
               </p>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '0.8rem' }}>
-                  <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#0f172a', width: '45px' }}>14:02</span>
-                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#22c55e', flexShrink: 0 }} />
-                  <p style={{ margin: 0, color: '#475569', fontWeight: 600 }}>
-                    <strong style={{ color: '#0f172a' }}>Internet</strong> — Restored — LTE signal regained
-                  </p>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '0.8rem' }}>
-                  <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#0f172a', width: '45px' }}>13:18</span>
-                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#f59e0b', flexShrink: 0 }} />
-                  <p style={{ margin: 0, color: '#475569', fontWeight: 600 }}>
-                    <strong style={{ color: '#0f172a' }}>LoRa fallback</strong> — Fallback — LTE dropped below threshold
-                  </p>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '0.8rem' }}>
-                  <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#0f172a', width: '45px' }}>11:47</span>
-                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#22c55e', flexShrink: 0 }} />
-                  <p style={{ margin: 0, color: '#475569', fontWeight: 600 }}>
-                    <strong style={{ color: '#0f172a' }}>Internet</strong> — Restored — LTE signal regained
-                  </p>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '0.8rem' }}>
-                  <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#0f172a', width: '45px' }}>09:05</span>
-                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#22c55e', flexShrink: 0 }} />
-                  <p style={{ margin: 0, color: '#475569', fontWeight: 600 }}>
-                    <strong style={{ color: '#0f172a' }}>Internet</strong> — Shift start — unit paired
-                  </p>
-                </div>
-              </div>
+              {/* REAL EVENTS COME WITH THE CAP CONNECTION STEP (connection_events TABLE) */}
+              <p style={{ margin: 0, color: '#64748b', fontSize: '0.8rem', fontWeight: 600 }}>
+                No connection events yet. They appear here once the cap is paired and starts sending.
+              </p>
             </div>
 
           </div>
@@ -750,10 +957,32 @@ export default function MonitoringPage({ onTabChange, onLogout }) {
             </div>
 
             {/* MODAL FORM BODY */}
-            <form onSubmit={handleAddSubmit} style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <form onSubmit={handleAddSubmit} noValidate style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <h3 style={{ margin: '0 0 2px 0', color: '#033015', fontSize: '0.95rem', fontWeight: 900 }}>
                 Personal Information
               </h3>
+
+              {/* ERROR FROM THE BACKEND (EXAMPLE: EMAIL ALREADY USED, MAX 3 REACHED) */}
+              {formError && (
+                <div
+                  role="alert"
+                  style={{
+                    backgroundColor: '#fef2f2',
+                    border: '1px solid #fca5a5',
+                    color: '#dc2626',
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <Icon icon="mdi:alert-circle" width="16" height="16" />
+                  {formError}
+                </div>
+              )}
 
               <div>
                 <label style={{ fontSize: '0.78rem', fontWeight: 800, color: '#033015', display: 'block', marginBottom: '4px' }}>
@@ -847,8 +1076,8 @@ export default function MonitoringPage({ onTabChange, onLogout }) {
                     Assigned Sector
                   </label>
                   <select
-                    value={newEnforcer.sector}
-                    onChange={(e) => setNewEnforcer({ ...newEnforcer, sector: e.target.value })}
+                    value={newEnforcer.sectorId}
+                    onChange={(e) => setNewEnforcer({ ...newEnforcer, sectorId: e.target.value })}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -863,9 +1092,9 @@ export default function MonitoringPage({ onTabChange, onLogout }) {
                     }}
                   >
                     <option value="">Select sector ↓</option>
-                    <option value="Sector 4 - Vicas Market">Sector 4</option>
-                    <option value="Sector 5 - Almar, Zabarte">Sector 5</option>
-                    <option value="Sector 6 - Zapote Road">Sector 6</option>
+                    {sectors.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -874,8 +1103,8 @@ export default function MonitoringPage({ onTabChange, onLogout }) {
                     Smart Cap
                   </label>
                   <select
-                    value={newEnforcer.capId}
-                    onChange={(e) => setNewEnforcer({ ...newEnforcer, capId: e.target.value })}
+                    value={newEnforcer.capCode}
+                    onChange={(e) => setNewEnforcer({ ...newEnforcer, capCode: e.target.value })}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -889,10 +1118,12 @@ export default function MonitoringPage({ onTabChange, onLogout }) {
                       cursor: 'pointer',
                     }}
                   >
-                    <option value="">Select CAP ↓</option>
-                    <option value="CAP 001">CAP 001</option>
-                    <option value="CAP 002">CAP 002</option>
-                    <option value="CAP 003">CAP 003</option>
+                    <option value="">No cap yet</option>
+                    {caps.map((c) => (
+                      <option key={c.capCode} value={c.capCode} disabled={!!c.assignedTo}>
+                        {c.assignedTo ? `${c.capCode} (taken)` : c.capCode}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -900,6 +1131,7 @@ export default function MonitoringPage({ onTabChange, onLogout }) {
               <div style={{ display: 'flex', justifyContent: 'center', gap: '14px', marginTop: '12px' }}>
                 <button
                   type="submit"
+                  disabled={isSaving}
                   style={{
                     backgroundColor: '#033015',
                     color: '#ffffff',
@@ -908,10 +1140,10 @@ export default function MonitoringPage({ onTabChange, onLogout }) {
                     padding: '10px 32px',
                     fontWeight: 900,
                     fontSize: '0.85rem',
-                    cursor: 'pointer',
+                    cursor: isSaving ? 'wait' : 'pointer',
                   }}
                 >
-                  ADD
+                  {isSaving ? 'ADDING...' : 'ADD'}
                 </button>
                 <button
                   type="button"

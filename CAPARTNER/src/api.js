@@ -44,6 +44,25 @@ export function adminVerifyCode(pendingToken, code) {
   return request('POST', '/admin/verify-code', { pendingToken, code });
 }
 
+// CALLS THAT NEED THE ADMIN TO BE LOGGED IN (A 401 ANSWER MEANS THE LOGIN PASS ENDED)
+function adminRequest(method, path, body) {
+  const session = loadSession();
+  if (!session) {
+    return Promise.reject(Object.assign(new Error('Please log in again.'), { status: 401 }));
+  }
+  return request(method, path, body, session.token);
+}
+
+export const listEnforcers = () => adminRequest('GET', '/enforcers');
+// data: { fullName, email, sectorId, badgeNo, contactNo, capCode }
+export const createEnforcer = (data) => adminRequest('POST', '/enforcers', data);
+export const deleteEnforcer = (id) => adminRequest('DELETE', `/enforcers/${id}`);
+export const forceLogoutEnforcer = (id) => adminRequest('POST', `/enforcers/${id}/force-logout`);
+export const resendEnforcerLogin = (id) => adminRequest('POST', `/enforcers/${id}/resend`);
+export const unlockEnforcer = (id) => adminRequest('POST', `/enforcers/${id}/unlock`);
+export const listSectors = () => adminRequest('GET', '/sectors');
+export const listCaps = () => adminRequest('GET', '/caps');
+
 // THE LOGIN PASS LIVES ONLY FOR THIS BROWSER TAB AND ENDS AFTER auto_signout_minutes
 export function saveSession(result) {
   const session = {

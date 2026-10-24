@@ -100,6 +100,7 @@ export default function App() {
       <MonitoringPage
         onTabChange={handleTabChange}
         onLogout={() => logout()}
+        onSessionEnded={(notice) => logout(notice)}
       />
     );
   }
