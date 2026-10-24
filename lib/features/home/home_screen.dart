@@ -37,6 +37,7 @@ class HomeScreen extends StatefulWidget {
     this.profile = const UserProfile(email: ''),
     this.onSos,
     this.onSaveProfile,
+    this.onChangePassword,
     this.onChangePairing,
     this.onLogout,
   });
@@ -48,6 +49,7 @@ class HomeScreen extends StatefulWidget {
   final UserProfile profile;
   final VoidCallback? onSos;
   final SaveProfileCallback? onSaveProfile;
+  final VoidCallback? onChangePassword;
   final VoidCallback? onChangePairing;
   final VoidCallback? onLogout;
 
@@ -69,9 +71,9 @@ class _HomeScreenState extends State<HomeScreen> {
   HomeTab _tab = HomeTab.dashboard;
   late UserProfile _profile = widget.profile;
 
-  String? _saveProfile(UserProfile profile, String? newPassword) {
-    final rejection = widget.onSaveProfile?.call(profile, newPassword);
-    if (rejection == null) setState(() => _profile = profile);
+  Future<String?> _saveProfile(UserProfile profile) async {
+    final rejection = await widget.onSaveProfile?.call(profile);
+    if (rejection == null && mounted) setState(() => _profile = profile);
     return rejection;
   }
 
@@ -144,6 +146,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         capId: _capId,
                         capBattery: _capBattery,
                         onSaveProfile: _saveProfile,
+                        onChangePassword: widget.onChangePassword,
                         onChangePairing: widget.onChangePairing,
                         onLogout: widget.onLogout,
                       ),

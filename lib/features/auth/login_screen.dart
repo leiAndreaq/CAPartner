@@ -5,9 +5,9 @@ import 'package:capartner/features/auth/widgets/auth_widgets.dart';
 import 'package:capartner/theme/app_colors.dart';
 import 'package:capartner/theme/app_text_styles.dart';
 
-/// Checks the entered credentials; returns the message to show when they are
-/// rejected, or null when the user is logged in.
-typedef LoginCallback = String? Function(
+/// Checks the entered credentials with the backend; completes with the message
+/// to show when they are rejected, or null when the login moves on.
+typedef LoginCallback = Future<String?> Function(
   String identifier,
   String password,
   bool rememberMe,
@@ -33,6 +33,9 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _rememberMe = true;
   bool _showErrors = false;
 
+  /// True while waiting for the backend's answer.
+  bool _busy = false;
+
   /// Message returned by [LoginScreen.onLogin] for the last attempt.
   String? _loginError;
 
@@ -41,7 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool get _isFilled => _identifier.isNotEmpty && _password.isNotEmpty;
 
   String? get _identifierError =>
-      _identifier.isEmpty ? 'Please enter your email or username.' : null;
+      _identifier.isEmpty ? 'Please enter your email.' : null;
   String? get _passwordError =>
       _password.isEmpty ? 'Please enter your password.' : _loginError;
 
@@ -63,15 +66,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _onInputChanged() => setState(() => _loginError = null);
 
-  void _submit() {
+  Future<void> _submit() async {
+    if (_busy) return;
     if (!_isFilled) {
       setState(() => _showErrors = true);
       (_identifier.isEmpty ? _identifierFocusNode : _passwordFocusNode)
           .requestFocus();
       return;
     }
-    final error = widget.onLogin?.call(_identifier, _password, _rememberMe);
+    setState(() => _busy = true);
+    final error = await widget.onLogin?.call(_identifier, _password, _rememberMe);
     if (!mounted) return;
+    setState(() => _busy = false);
     if (error == null) {
       FocusScope.of(context).unfocus();
       return;
@@ -120,7 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
         const SizedBox(height: 19),
-        _buildLabel('Email / Username'),
+        _buildLabel('Email'),
         const SizedBox(height: 5),
         _buildIdentifierField(
           hasError: identifierError != null,
@@ -145,7 +151,11 @@ class _LoginScreenState extends State<LoginScreen> {
           height: passwordError == null ? 44 : 28,
           child: _buildOptionsRow(),
         ),
-        AuthButton(label: 'Continue', active: _isFilled, onPressed: _submit),
+        AuthButton(
+          label: _busy ? 'Please wait...' : 'Continue',
+          active: _isFilled && !_busy,
+          onPressed: _submit,
+        ),
         const SizedBox(height: 24),
       ],
     );
@@ -193,7 +203,7 @@ class _LoginScreenState extends State<LoginScreen> {
             decoration: InputDecoration(
               isCollapsed: true,
               border: InputBorder.none,
-              hintText: 'Enter your email or username',
+              hintText: 'Enter your email',
               hintStyle: hintStyle,
             ),
           ),

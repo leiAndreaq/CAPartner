@@ -4,28 +4,30 @@ import 'package:flutter/services.dart';
 import 'package:capartner/features/account/account_widgets.dart';
 import 'package:capartner/features/account/profile_validators.dart';
 import 'package:capartner/features/auth/user_profile.dart';
-import 'package:capartner/features/auth/utils/email_validator.dart';
-import 'package:capartner/features/auth/utils/password_validator.dart';
 import 'package:capartner/features/auth/widgets/auth_widgets.dart';
 import 'package:capartner/theme/app_colors.dart';
 import 'package:capartner/theme/app_text_styles.dart';
 
-/// Saves an edited profile, with [newPassword] when the password was changed;
-/// returns the message to show when it is rejected, or null once saved.
-typedef SaveProfileCallback = String? Function(
-  UserProfile profile,
-  String? newPassword,
-);
+/// Saves an edited name and contact number with the backend; completes with
+/// the message to show when it is rejected, or null once saved.
+typedef SaveProfileCallback = Future<String?> Function(UserProfile profile);
 
 /// Edit Profile, opened from the Account tab.
 ///
-/// Email and password follow the same rules as when creating an account. The
-/// password may be left empty to keep the current one.
+/// Name and contact number are saved right away. The email can only be changed
+/// by the admin. The password is changed on its own screen (current password +
+/// email code), opened with [onChangePassword].
 class EditProfileScreen extends StatefulWidget {
-  const EditProfileScreen({super.key, required this.profile, this.onSave});
+  const EditProfileScreen({
+    super.key,
+    required this.profile,
+    this.onSave,
+    this.onChangePassword,
+  });
 
   final UserProfile profile;
   final SaveProfileCallback? onSave;
+  final VoidCallback? onChangePassword;
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
@@ -41,60 +43,47 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late final TextEditingController _contactController = TextEditingController(
     text: widget.profile.contactNumber,
   );
-  final TextEditingController _passwordController = TextEditingController();
 
   final FocusNode _nameFocusNode = FocusNode();
   final FocusNode _emailFocusNode = FocusNode();
-  final FocusNode _passwordFocusNode = FocusNode();
   final FocusNode _contactFocusNode = FocusNode();
 
   // Errors stay hidden until the user tries to save.
   bool _showErrors = false;
 
+  /// True while waiting for the backend's answer.
+  bool _busy = false;
+
   /// Message returned by [EditProfileScreen.onSave] for the last attempt.
   String? _rejection;
 
   String? get _nameError => validateName(_nameController.text);
-  String? get _emailError => validateEmail(_emailController.text) ?? _rejection;
-  String? get _passwordError => _passwordController.text.isEmpty
-      ? null
-      : validatePassword(_passwordController.text);
-  String? get _contactError => validateContactNumber(_contactController.text);
+  String? get _contactError =>
+      validateContactNumber(_contactController.text) ?? _rejection;
 
   @override
   void initState() {
     super.initState();
-    for (final controller in [
-      _nameController,
-      _passwordController,
-      _contactController,
-    ]) {
-      controller.addListener(() => setState(() {}));
-    }
-    _emailController.addListener(() => setState(() => _rejection = null));
+    _nameController.addListener(() => setState(() => _rejection = null));
+    _contactController.addListener(() => setState(() => _rejection = null));
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
-    _passwordController.dispose();
     _contactController.dispose();
     _nameFocusNode.dispose();
     _emailFocusNode.dispose();
-    _passwordFocusNode.dispose();
     _contactFocusNode.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
+    if (_busy) return;
     _rejection = null;
     final firstInvalid = _nameError != null
         ? _nameFocusNode
-        : _emailError != null
-        ? _emailFocusNode
-        : _passwordError != null
-        ? _passwordFocusNode
         : _contactError != null
         ? _contactFocusNode
         : null;
@@ -113,22 +102,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
     if (!confirmed || !mounted) return;
 
-    final password = _passwordController.text;
-    final rejection = widget.onSave?.call(
+    setState(() => _busy = true);
+    final rejection = await widget.onSave?.call(
       UserProfile(
         name: _nameController.text.trim(),
-        email: _emailController.text.trim(),
+        email: widget.profile.email,
         contactNumber: _contactController.text.trim(),
       ),
-      password.isEmpty ? null : password,
     );
     if (!mounted) return;
+    setState(() => _busy = false);
     if (rejection != null) {
       setState(() {
         _showErrors = true;
         _rejection = rejection;
       });
-      _emailFocusNode.requestFocus();
+      _contactFocusNode.requestFocus();
       return;
     }
     Navigator.of(context).pop();
@@ -137,8 +126,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final nameError = _showErrors ? _nameError : null;
-    final emailError = _showErrors ? _emailError : null;
-    final passwordError = _showErrors ? _passwordError : null;
     final contactError = _showErrors ? _contactError : null;
 
     return AccountPageScaffold(
@@ -170,29 +157,48 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             _buildField(
               controller: _emailController,
               focusNode: _emailFocusNode,
-              nextFocusNode: _passwordFocusNode,
+              nextFocusNode: _contactFocusNode,
               hintText: 'Enter your email',
-              hasError: emailError != null,
+              hasError: false,
+              readOnly: true,
               keyboardType: TextInputType.emailAddress,
               autofillHints: const [AutofillHints.email],
               maxLength: 254,
-              inputFormatters: [
-                FilteringTextInputFormatter.deny(RegExp(r'\s')),
-              ],
             ),
-            AuthErrorText(message: emailError, minHeight: 12),
+            Padding(
+              padding: const EdgeInsets.only(top: 4, bottom: 12),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Only your station admin can change your email.',
+                  style: authTextStyle(
+                    fontSize: 11,
+                    weight: FontWeight.w500,
+                    color: AppColors.greyGreen,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+            ),
             _buildLabel('Password'),
-            AuthPasswordField(
-              controller: _passwordController,
-              focusNode: _passwordFocusNode,
-              hintText: 'New password (leave empty to keep)',
-              hintStyle: _hintStyle,
-              hasError: passwordError != null,
-              autofillHints: const [AutofillHints.newPassword],
-              textInputAction: TextInputAction.next,
-              onEditingComplete: _contactFocusNode.requestFocus,
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: OutlinedButton.icon(
+                onPressed: widget.onChangePassword,
+                icon: const Icon(Icons.lock_outline, size: 18),
+                label: const Text('Change Password'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.darkGreen,
+                  side: const BorderSide(color: AppColors.darkGreen, width: 1.5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  textStyle: authTextStyle(fontSize: 14, weight: FontWeight.w600),
+                ),
+              ),
             ),
-            AuthErrorText(message: passwordError, minHeight: 12),
+            const SizedBox(height: 12),
             _buildLabel('Contact #'),
             _buildField(
               controller: _contactController,
@@ -207,7 +213,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ],
             ),
             AuthErrorText(message: contactError, minHeight: 24),
-            AuthButton(label: 'Save Changes', onPressed: _save),
+            AuthButton(
+              label: _busy ? 'Saving...' : 'Save Changes',
+              active: !_busy,
+              onPressed: _save,
+            ),
             const SizedBox(height: 10),
             SizedBox(
               width: double.infinity,
@@ -266,6 +276,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     required Iterable<String> autofillHints,
     required int maxLength,
     FocusNode? nextFocusNode,
+    bool readOnly = false,
     TextCapitalization textCapitalization = TextCapitalization.none,
     List<TextInputFormatter> inputFormatters = const [],
   }) {
@@ -278,6 +289,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           child: TextField(
             controller: controller,
             focusNode: focusNode,
+            readOnly: readOnly,
             keyboardType: keyboardType,
             textCapitalization: textCapitalization,
             textInputAction: nextFocusNode == null
@@ -294,7 +306,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             onEditingComplete: nextFocusNode == null
                 ? _save
                 : nextFocusNode.requestFocus,
-            style: authTextStyle(fontSize: 14, weight: FontWeight.w500),
+            style: authTextStyle(
+              fontSize: 14,
+              weight: FontWeight.w500,
+              color: readOnly ? AppColors.greyGreen : AppColors.darkGreen,
+            ),
             decoration: InputDecoration(
               isCollapsed: true,
               border: InputBorder.none,

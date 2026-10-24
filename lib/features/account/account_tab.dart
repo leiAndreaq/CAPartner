@@ -23,6 +23,7 @@ class AccountTab extends StatelessWidget {
     required this.capId,
     required this.capBattery,
     this.onSaveProfile,
+    this.onChangePassword,
     this.onChangePairing,
     this.onLogout,
   });
@@ -41,6 +42,7 @@ class AccountTab extends StatelessWidget {
   final int capBattery;
 
   final SaveProfileCallback? onSaveProfile;
+  final VoidCallback? onChangePassword;
   final VoidCallback? onChangePairing;
   final VoidCallback? onLogout;
 
@@ -52,8 +54,11 @@ class AccountTab extends StatelessWidget {
   void _editProfile(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) =>
-            EditProfileScreen(profile: profile, onSave: onSaveProfile),
+        builder: (_) => EditProfileScreen(
+          profile: profile,
+          onSave: onSaveProfile,
+          onChangePassword: onChangePassword,
+        ),
       ),
     );
   }

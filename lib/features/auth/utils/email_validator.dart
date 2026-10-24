@@ -33,8 +33,11 @@ const List<String> _supportedDomainSuffixes = ['.gov.ph', '.gov.com'];
 /// Returns the message to show for [input], or null when it is a valid email
 /// from a supported provider.
 ///
+/// [requireSupportedDomain] can be turned off where the account already exists
+/// (the admin may have created it with any email), for example Forgot Password.
+///
 /// Leading and trailing whitespace is ignored.
-String? validateEmail(String input) {
+String? validateEmail(String input, {bool requireSupportedDomain = true}) {
   final email = input.trim();
   if (email.isEmpty) {
     return 'Please enter your email address.';
@@ -75,7 +78,7 @@ String? validateEmail(String input) {
     return 'Please enter a valid email address.';
   }
 
-  if (!_isSupportedDomain(domain.toLowerCase())) {
+  if (requireSupportedDomain && !_isSupportedDomain(domain.toLowerCase())) {
     return 'Use an email like @gmail.com or @yahoo.com.';
   }
 

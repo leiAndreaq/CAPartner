@@ -13,8 +13,8 @@ import 'package:capartner/theme/app_text_styles.dart';
 class LoginOtpScreen extends StatelessWidget {
   const LoginOtpScreen({super.key, this.onVerify, this.onResend});
 
-  final ValueChanged<String>? onVerify;
-  final VoidCallback? onResend;
+  final OtpVerifyCallback? onVerify;
+  final OtpResendCallback? onResend;
 
   @override
   Widget build(BuildContext context) {

@@ -1,4 +1,5 @@
-const int minPasswordLength = 8;
+// Same rule as the backend (passwords.js): 10+ characters, upper, lower, number, symbol.
+const int minPasswordLength = 10;
 
 final RegExp _uppercasePattern = RegExp(r'[A-Z]');
 final RegExp _lowercasePattern = RegExp(r'[a-z]');

@@ -15,7 +15,8 @@ class EmailScreen extends StatefulWidget {
       titleTop = 46,
       titleLeftInset = 0,
       subheading = 'Enter your email to verify your account.',
-      subheadingWidth = null;
+      subheadingWidth = null,
+      requireSupportedDomain = true;
 
   /// First step of Forgot Password (Figma nodes 635:1916 and 734:24).
   const EmailScreen.forgotPassword({
@@ -27,13 +28,19 @@ class EmailScreen extends StatefulWidget {
        titleLeftInset = 43,
        subheading =
            'Enter your email to verify your account to change password',
-       subheadingWidth = 219;
+       subheadingWidth = 219,
+       // The admin may have created the account with any email.
+       requireSupportedDomain = false;
 
   final ValueChanged<String>? onContinue;
 
-  /// Extra check run on a well-formed email when the user continues; returns
-  /// the message to show when the email is rejected, or null to accept it.
-  final String? Function(String email)? checkEmail;
+  /// Extra check run on a well-formed email when the user continues (for
+  /// example, asking the backend to send a code); completes with the message
+  /// to show when the email is rejected, or null to accept it.
+  final Future<String?> Function(String email)? checkEmail;
+
+  /// Whether only the listed email providers are accepted.
+  final bool requireSupportedDomain;
 
   final String title;
   final double titleTop;
@@ -51,10 +58,16 @@ class _EmailScreenState extends State<EmailScreen> {
   final TextEditingController _emailController = TextEditingController();
   final FocusNode _emailFocusNode = FocusNode();
 
-  String? _error = validateEmail('');
+  late String? _error = _validate('');
 
   /// Message returned by [EmailScreen.checkEmail] for the last attempt.
   String? _rejection;
+
+  /// True while waiting for [EmailScreen.checkEmail].
+  bool _busy = false;
+
+  String? _validate(String text) =>
+      validateEmail(text, requireSupportedDomain: widget.requireSupportedDomain);
 
   // Errors stay hidden until the user has tried to move on, so the message
   // does not flash while they are still typing their first attempt.
@@ -77,7 +90,7 @@ class _EmailScreenState extends State<EmailScreen> {
   }
 
   void _onEmailChanged() {
-    final error = validateEmail(_emailController.text);
+    final error = _validate(_emailController.text);
     if (error != _error || _rejection != null) {
       setState(() {
         _error = error;
@@ -94,14 +107,18 @@ class _EmailScreenState extends State<EmailScreen> {
     }
   }
 
-  void _submit() {
+  Future<void> _submit() async {
+    if (_busy) return;
     if (!_isValid) {
       setState(() => _showError = true);
       _emailFocusNode.requestFocus();
       return;
     }
     final email = _emailController.text.trim();
-    final rejection = widget.checkEmail?.call(email);
+    setState(() => _busy = true);
+    final rejection = await widget.checkEmail?.call(email);
+    if (!mounted) return;
+    setState(() => _busy = false);
     if (rejection != null) {
       setState(() {
         _showError = true;
@@ -131,7 +148,11 @@ class _EmailScreenState extends State<EmailScreen> {
         const SizedBox(height: 68),
         _buildEmailField(hasError: visibleError != null),
         AuthErrorText(message: visibleError, minHeight: 18),
-        AuthButton(label: 'Continue', active: _isValid, onPressed: _submit),
+        AuthButton(
+          label: _busy ? 'Please wait...' : 'Continue',
+          active: _isValid && !_busy,
+          onPressed: _submit,
+        ),
         const SizedBox(height: 24),
       ],
     );

@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:capartner/features/auth/utils/password_validator.dart';
 import 'package:capartner/features/auth/widgets/auth_widgets.dart';
 
+/// Saves the new password with the backend; completes with the message to show
+/// when it is rejected, or null when the flow moves on.
+typedef PasswordSubmitCallback = Future<String?> Function(String password);
+
 /// Create password screen (Figma node 528:106).
 ///
 /// [onSubmit] is called with the new password once it is strong enough and
@@ -19,7 +23,7 @@ class PasswordScreen extends StatefulWidget {
       titleLeftInset = 43,
       buttonLabel = 'Update Password';
 
-  final ValueChanged<String>? onSubmit;
+  final PasswordSubmitCallback? onSubmit;
 
   final String title;
   final double titleLeftInset;
@@ -40,7 +44,14 @@ class _PasswordScreenState extends State<PasswordScreen> {
   bool _showPasswordError = false;
   bool _showConfirmError = false;
 
-  String? get _passwordError => validatePassword(_passwordController.text);
+  /// True while waiting for the backend's answer.
+  bool _busy = false;
+
+  /// Message from the backend for the last try (example: same as the old password).
+  String? _serverError;
+
+  String? get _passwordError =>
+      validatePassword(_passwordController.text) ?? _serverError;
   String? get _confirmError => validatePasswordConfirmation(
     _passwordController.text,
     _confirmController.text,
@@ -50,7 +61,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
   @override
   void initState() {
     super.initState();
-    _passwordController.addListener(() => setState(() {}));
+    _passwordController.addListener(() => setState(() => _serverError = null));
     _confirmController.addListener(() => setState(() {}));
     _passwordFocusNode.addListener(_onPasswordFocusChanged);
     _confirmFocusNode.addListener(_onConfirmFocusChanged);
@@ -81,7 +92,8 @@ class _PasswordScreenState extends State<PasswordScreen> {
     }
   }
 
-  void _submit() {
+  Future<void> _submit() async {
+    if (_busy) return;
     if (!_isValid) {
       setState(() {
         _showPasswordError = true;
@@ -92,7 +104,16 @@ class _PasswordScreenState extends State<PasswordScreen> {
       return;
     }
     FocusScope.of(context).unfocus();
-    widget.onSubmit?.call(_passwordController.text);
+    setState(() => _busy = true);
+    final error = await widget.onSubmit?.call(_passwordController.text);
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      if (error != null) {
+        _serverError = error;
+        _showPasswordError = true;
+      }
+    });
   }
 
   @override
@@ -132,8 +153,8 @@ class _PasswordScreenState extends State<PasswordScreen> {
         ),
         AuthErrorText(message: confirmError, minHeight: 20),
         AuthButton(
-          label: widget.buttonLabel,
-          active: _isValid,
+          label: _busy ? 'Please wait...' : widget.buttonLabel,
+          active: _isValid && !_busy,
           onPressed: _submit,
         ),
         const SizedBox(height: 24),

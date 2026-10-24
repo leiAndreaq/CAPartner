@@ -20,8 +20,8 @@ class OtpScreen extends StatelessWidget {
   /// own name here.
   final String title;
 
-  final ValueChanged<String>? onVerify;
-  final VoidCallback? onResend;
+  final OtpVerifyCallback? onVerify;
+  final OtpResendCallback? onResend;
 
   @override
   Widget build(BuildContext context) {

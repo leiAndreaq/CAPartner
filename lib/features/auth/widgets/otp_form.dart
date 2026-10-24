@@ -7,6 +7,14 @@ import 'package:capartner/features/auth/widgets/auth_widgets.dart';
 import 'package:capartner/theme/app_colors.dart';
 import 'package:capartner/theme/app_text_styles.dart';
 
+/// Checks a 6-digit code with the backend; completes with the message to show
+/// under the boxes when it is rejected, or null when the flow moves on.
+typedef OtpVerifyCallback = Future<String?> Function(String code);
+
+/// Asks the backend for a new code; completes with a message to show when that
+/// fails, or null once a new code was sent.
+typedef OtpResendCallback = Future<String?> Function();
+
 /// Six code boxes, the Verify button and the resend link, as used on the OTP
 /// screens.
 ///
@@ -16,8 +24,8 @@ import 'package:capartner/theme/app_text_styles.dart';
 class OtpForm extends StatefulWidget {
   const OtpForm({super.key, this.onVerify, this.onResend});
 
-  final ValueChanged<String>? onVerify;
-  final VoidCallback? onResend;
+  final OtpVerifyCallback? onVerify;
+  final OtpResendCallback? onResend;
 
   static const int codeLength = 6;
   static const int resendCooldownSeconds = 30;
@@ -41,10 +49,17 @@ class _OtpFormState extends State<OtpForm> {
   int _resendSecondsLeft = 0;
   bool _showError = false;
 
+  /// True while waiting for the backend's answer.
+  bool _busy = false;
+
+  /// Message from the backend for the last try (wrong code, expired, ...).
+  String? _serverError;
+
   String get _code => _codeController.text;
   bool get _isComplete => _code.length == OtpForm.codeLength;
 
   String? get _error {
+    if (_serverError != null) return _serverError;
     if (_isComplete) return null;
     return _code.isEmpty
         ? 'Please enter the 6-digit code.'
@@ -54,7 +69,12 @@ class _OtpFormState extends State<OtpForm> {
   @override
   void initState() {
     super.initState();
-    _codeController.addListener(() => setState(() {}));
+    _codeController.addListener(() {
+      setState(() {
+        // Typing a new code hides the backend's last message.
+        if (_code.isNotEmpty) _serverError = null;
+      });
+    });
   }
 
   @override
@@ -65,20 +85,33 @@ class _OtpFormState extends State<OtpForm> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
+    if (_busy) return;
     if (!_isComplete) {
       setState(() => _showError = true);
       _codeFocusNode.requestFocus();
       return;
     }
     _codeFocusNode.unfocus();
-    widget.onVerify?.call(_code);
+    setState(() => _busy = true);
+    final error = await widget.onVerify?.call(_code);
+    if (!mounted) return;
+    setState(() => _busy = false);
+    if (error != null) {
+      _codeController.clear();
+      setState(() {
+        _serverError = error;
+        _showError = true;
+      });
+      _codeFocusNode.requestFocus();
+    }
   }
 
-  void _resend() {
+  Future<void> _resend() async {
     _codeController.clear();
     setState(() {
       _showError = false;
+      _serverError = null;
       _resendSecondsLeft = OtpForm.resendCooldownSeconds;
     });
     _resendTimer?.cancel();
@@ -87,7 +120,12 @@ class _OtpFormState extends State<OtpForm> {
       if (_resendSecondsLeft <= 0) timer.cancel();
     });
     _codeFocusNode.requestFocus();
-    widget.onResend?.call();
+    final error = await widget.onResend?.call();
+    if (!mounted || error == null) return;
+    setState(() {
+      _serverError = error;
+      _showError = true;
+    });
   }
 
   @override
@@ -102,7 +140,11 @@ class _OtpFormState extends State<OtpForm> {
           minHeight: 42,
           alignment: Alignment.center,
         ),
-        AuthButton(label: 'Verify', active: _isComplete, onPressed: _submit),
+        AuthButton(
+          label: _busy ? 'Verifying...' : 'Verify',
+          active: _isComplete && !_busy,
+          onPressed: _submit,
+        ),
         const SizedBox(height: 3),
         _buildResend(),
       ],

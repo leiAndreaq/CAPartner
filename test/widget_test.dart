@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:capartner/features/welcome/welcome_screen.dart';
 import 'package:capartner/main.dart';
 import 'package:capartner/features/home/home_screen.dart';
+import 'package:capartner/features/account/change_password_screen.dart';
 import 'package:capartner/features/account/edit_profile_screen.dart';
 import 'package:capartner/features/account/privacy_policy_screen.dart';
 import 'package:capartner/features/alerts/alerts_tab.dart';
@@ -17,6 +18,8 @@ import 'package:capartner/features/splash/splash_screen.dart';
 import 'package:capartner/features/auth/password_screen.dart';
 import 'package:capartner/features/auth/utils/email_validator.dart';
 import 'package:capartner/features/auth/utils/password_validator.dart';
+
+import 'fake_backend.dart';
 
 void main() {
   testWidgets('App starts on the splash screen', (WidgetTester tester) async {
@@ -44,16 +47,19 @@ void main() {
     expect(continued, isTrue);
   });
 
-  testWidgets('Tapping the splash screen opens the email screen', (
+  testWidgets('Tapping the splash screen opens Login (no sign-up)', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const CAPartnerApp());
+    await tester.pumpWidget(
+      CAPartnerApp(api: FakeBackend(), session: FakeSession()),
+    );
 
     await tester.tap(find.byType(SplashScreen));
     await tester.pumpAndSettle();
 
-    expect(find.byType(EmailScreen), findsOneWidget);
-    expect(find.text('Email Verification'), findsOneWidget);
+    // Accounts are made by the admin, so the app goes straight to Login.
+    expect(find.byType(LoginScreen), findsOneWidget);
+    expect(find.byType(EmailScreen), findsNothing);
   });
 
   testWidgets('Continue is enabled only for a valid email', (
@@ -180,23 +186,68 @@ void main() {
     expect(submitted, 'user@gmail.com');
   });
 
-  testWidgets('A valid email opens the OTP screen', (
+  testWidgets('Forgot Password accepts any email domain and opens the OTP screen', (
     WidgetTester tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    await tester.pumpWidget(const CAPartnerApp());
-    await tester.tap(find.byType(SplashScreen));
-    await tester.pumpAndSettle();
+    final sent = <String>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => EmailScreen.forgotPassword(
+            checkEmail: (email) async {
+              sent.add(email);
+              return null;
+            },
+            onContinue: (_) => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const OtpScreen()),
+            ),
+          ),
+        ),
+      ),
+    );
 
-    await tester.enterText(find.byType(TextField), 'user@gmail.com');
+    // The admin may have used a work email, so no provider list here.
+    await tester.enterText(find.byType(TextField), 'officer@caloocan.city');
     await tester.pump();
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
 
+    expect(sent, ['officer@caloocan.city']);
     expect(find.byType(OtpScreen), findsOneWidget);
     expect(find.text('Verify Your Email'), findsOneWidget);
+  });
+
+  testWidgets('OTP shows the backend answer under the boxes', (
+    WidgetTester tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: OtpScreen(
+          onVerify: (code) async => 'Wrong code. 4 tries left.',
+        ),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextField), '000000');
+    await tester.pump();
+    await tester.tap(find.text('Verify'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Wrong code. 4 tries left.'), findsOneWidget);
+    // The boxes are cleared for the next try, and typing hides the message.
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      '',
+    );
+    await tester.enterText(find.byType(TextField), '1');
+    await tester.pump();
+    expect(find.text('Wrong code. 4 tries left.'), findsNothing);
   });
 
   testWidgets('OTP accepts only a full 6-digit code', (
@@ -207,7 +258,14 @@ void main() {
 
     String? verified;
     await tester.pumpWidget(
-      MaterialApp(home: OtpScreen(onVerify: (code) => verified = code)),
+      MaterialApp(
+        home: OtpScreen(
+          onVerify: (code) async {
+            verified = code;
+            return null;
+          },
+        ),
+      ),
     );
 
     await tester.tap(find.text('Verify'));
@@ -235,7 +293,14 @@ void main() {
 
     var resent = 0;
     await tester.pumpWidget(
-      MaterialApp(home: OtpScreen(onResend: () => resent++)),
+      MaterialApp(
+        home: OtpScreen(
+          onResend: () async {
+            resent++;
+            return null;
+          },
+        ),
+      ),
     );
 
     await tester.enterText(find.byType(TextField), '123');
@@ -253,23 +318,23 @@ void main() {
     expect(find.text('Resend OTP'), findsOneWidget);
   });
 
-  test('validatePassword requires a strong password', () {
+  test('validatePassword follows the backend rule (10+, upper, lower, number, symbol)', () {
     expect(validatePassword(''), 'Please enter a password.');
-    expect(validatePassword('Ab1!'), 'Use at least 8 characters.');
+    expect(validatePassword('Abcdef1!'), 'Use at least 10 characters.');
     expect(
-      validatePassword('abcdef1!'),
+      validatePassword('abcdefgh1!'),
       'Add at least one uppercase letter (A-Z).',
     );
     expect(
-      validatePassword('ABCDEF1!'),
+      validatePassword('ABCDEFGH1!'),
       'Add at least one lowercase letter (a-z).',
     );
-    expect(validatePassword('Abcdefg!'), 'Add at least one number (0-9).');
+    expect(validatePassword('Abcdefghi!'), 'Add at least one number (0-9).');
     expect(
-      validatePassword('Abcdefg1'),
+      validatePassword('Abcdefghi1'),
       'Add at least one special character, e.g. ! @ # \$.',
     );
-    expect(validatePassword('Abcdef1!'), isNull);
+    expect(validatePassword('Abcdefgh1!'), isNull);
   });
 
   testWidgets('Create Password accepts only a strong, matching password', (
@@ -280,7 +345,15 @@ void main() {
 
     String? created;
     await tester.pumpWidget(
-      MaterialApp(home: PasswordScreen(onSubmit: (p) => created = p)),
+      MaterialApp(
+        home: PasswordScreen(
+          onSubmit: (p) async {
+            if (p == 'Rejected#123') return 'New password must be different.';
+            created = p;
+            return null;
+          },
+        ),
+      ),
     );
 
     await tester.tap(find.text('Create Password'));
@@ -288,24 +361,34 @@ void main() {
     expect(find.text('Please enter a password.'), findsOneWidget);
     expect(find.text('Please confirm your password.'), findsOneWidget);
 
-    await tester.enterText(find.byType(TextField).first, 'abcdef1!');
+    await tester.enterText(find.byType(TextField).first, 'abcdefgh1!');
     await tester.pump();
     expect(
       find.text('Add at least one uppercase letter (A-Z).'),
       findsOneWidget,
     );
 
-    await tester.enterText(find.byType(TextField).first, 'Abcdef1!');
-    await tester.enterText(find.byType(TextField).last, 'Abcdef1');
+    await tester.enterText(find.byType(TextField).first, 'Abcdefgh1!');
+    await tester.enterText(find.byType(TextField).last, 'Abcdefgh1');
     await tester.pump();
     expect(find.text('Passwords do not match.'), findsOneWidget);
     await tester.tap(find.text('Create Password'));
     expect(created, isNull);
 
-    await tester.enterText(find.byType(TextField).last, 'Abcdef1!');
+    // The backend's answer is shown under the password.
+    await tester.enterText(find.byType(TextField).first, 'Rejected#123');
+    await tester.enterText(find.byType(TextField).last, 'Rejected#123');
     await tester.pump();
     await tester.tap(find.text('Create Password'));
-    expect(created, 'Abcdef1!');
+    await tester.pumpAndSettle();
+    expect(find.text('New password must be different.'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField).first, 'Abcdefgh1!');
+    await tester.enterText(find.byType(TextField).last, 'Abcdefgh1!');
+    await tester.pump();
+    await tester.tap(find.text('Create Password'));
+    await tester.pumpAndSettle();
+    expect(created, 'Abcdefgh1!');
   });
 
   testWidgets('Login asks for both fields and shows a rejected login', (
@@ -318,7 +401,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: LoginScreen(
-          onLogin: (identifier, password, rememberMe) {
+          onLogin: (identifier, password, rememberMe) async {
             attempts.add('$identifier/$password/$rememberMe');
             return password == 'Abcdef1!' ? null : 'Incorrect password.';
           },
@@ -328,7 +411,7 @@ void main() {
 
     await tester.tap(find.text('Continue'));
     await tester.pump();
-    expect(find.text('Please enter your email or username.'), findsOneWidget);
+    expect(find.text('Please enter your email.'), findsOneWidget);
     expect(find.text('Please enter your password.'), findsOneWidget);
     expect(attempts, isEmpty);
 
@@ -350,13 +433,16 @@ void main() {
     ]);
   });
 
-  testWidgets('Only the first login asks for email verification', (
+  testWidgets('Enforcer journey: first login, logout, forgot password', (
     WidgetTester tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
+    final backend = FakeBackend();
+    final session = FakeSession();
     final verifyButton = find.widgetWithText(FilledButton, 'Verify');
+
     Future<void> logOut() async {
       await tester.tap(find.text('Account'));
       await tester.pump();
@@ -369,47 +455,50 @@ void main() {
     }
 
     Future<void> logIn(String password) async {
-      await tester.enterText(find.byType(TextField).first, 'User@Gmail.com');
+      await tester.enterText(find.byType(TextField).first, 'Juan@Gmail.com');
       await tester.enterText(find.byType(TextField).last, password);
       await tester.pump();
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
     }
 
-    // Sign up.
-    await tester.pumpWidget(const CAPartnerApp());
+    Future<void> enterCode(String code) async {
+      await tester.enterText(find.byType(TextField), code);
+      await tester.pump();
+      await tester.tap(verifyButton);
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> setPassword(String password, String button) async {
+      await tester.enterText(find.byType(TextField).first, password);
+      await tester.enterText(find.byType(TextField).last, password);
+      await tester.pump();
+      await tester.tap(find.text(button));
+      await tester.pump();
+    }
+
+    await tester.pumpWidget(CAPartnerApp(api: backend, session: session));
     await tester.tap(find.byType(SplashScreen));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), 'user@gmail.com');
-    await tester.pump();
-    await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), '123456');
-    await tester.pump();
-    await tester.tap(verifyButton);
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField).first, 'Abcdef1!');
-    await tester.enterText(find.byType(TextField).last, 'Abcdef1!');
-    await tester.pump();
-    await tester.tap(find.text('Create Password'));
     await tester.pumpAndSettle();
     expect(find.byType(LoginScreen), findsOneWidget);
 
-    await logIn('Wrong123!');
-    expect(find.text('Incorrect email or password.'), findsOneWidget);
+    await logIn('Wrong#12345');
+    expect(find.text('Invalid email or password.'), findsOneWidget);
 
-    // First login.
-    await logIn('Abcdef1!');
+    // First login: temporary password from the admin's email, then the code.
+    await logIn('TempPass#123');
     expect(find.byType(LoginOtpScreen), findsOneWidget);
-    await tester.enterText(find.byType(TextField), '654321');
-    await tester.pump();
-    await tester.tap(verifyButton);
+    await enterCode('000000');
+    expect(find.text('Wrong code. 4 tries left.'), findsOneWidget);
+    await enterCode(FakeBackend.goodCode);
+
+    // Then a new strong password is required.
+    expect(find.byType(PasswordScreen), findsOneWidget);
+    await setPassword('Traffic#2026', 'Create Password');
 
     // The loading screen moves on by itself.
-    await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.byType(WelcomeScreen), findsOneWidget);
-    expect(find.text('Welcome!'), findsOneWidget);
     await tester.pumpAndSettle();
     expect(find.byType(PairingScreen), findsOneWidget);
 
@@ -426,40 +515,46 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(HomeScreen), findsOneWidget);
     expect(find.text('CAP 001 - PSTMD-2026-084'), findsOneWidget);
+    expect(backend.registeredDevice, isNotNull);
 
-    // Later logins skip both the verification and the pairing.
+    // Logout forgets this phone on the server: the next login needs a code
+    // again, but no pairing (the cap is remembered on this phone).
     await logOut();
-    await logIn('Abcdef1!');
+    expect(backend.registeredDevice, isNull);
+    expect(await session.token(), isNull);
+    await logIn('Traffic#2026');
+    expect(find.byType(LoginOtpScreen), findsOneWidget);
+    await enterCode(FakeBackend.goodCode);
+    await tester.pumpAndSettle();
     expect(find.byType(HomeScreen), findsOneWidget);
 
-    // Forgot password.
+    // Closing and opening the app keeps the login (until Sunday night).
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpWidget(CAPartnerApp(api: backend, session: session));
+    await tester.tap(find.byType(SplashScreen));
+    await tester.pumpAndSettle();
+    expect(find.byType(HomeScreen), findsOneWidget);
+
+    // Forgot password: email -> code -> new password -> straight in.
     await logOut();
     await tester.tap(find.text('Forgot Password?'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), 'nobody@gmail.com');
-    await tester.pump();
-    await tester.tap(find.text('Continue'));
-    await tester.pump();
-    expect(find.text('No account found for this email.'), findsOneWidget);
-    await tester.enterText(find.byType(TextField), 'user@gmail.com');
+    await tester.enterText(find.byType(TextField), 'juan@gmail.com');
     await tester.pump();
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), '111111');
-    await tester.pump();
-    await tester.tap(verifyButton);
+    await enterCode(FakeBackend.goodCode);
+    expect(find.byType(PasswordScreen), findsOneWidget);
+    await setPassword('Traffic#2026', 'Update Password');
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField).first, 'Newpass2@');
-    await tester.enterText(find.byType(TextField).last, 'Newpass2@');
-    await tester.pump();
-    await tester.tap(find.text('Update Password'));
+    expect(
+      find.text('New password must be different from the old one.'),
+      findsOneWidget,
+    );
+    await setPassword('Newpass#2026', 'Update Password');
     await tester.pumpAndSettle();
-    expect(find.byType(LoginScreen), findsOneWidget);
-
-    await logIn('Abcdef1!');
-    expect(find.text('Incorrect email or password.'), findsOneWidget);
-    await logIn('Newpass2@');
     expect(find.byType(HomeScreen), findsOneWidget);
+    expect(backend.password, 'Newpass#2026');
   });
 
   testWidgets('Dashboard shows the readings and switches tabs', (
@@ -585,25 +680,28 @@ void main() {
     expect(loggedOut, isTrue);
   });
 
-  testWidgets('Edit Profile validates like sign-up, then saves or cancels', (
+  testWidgets('Edit Profile saves name and contact; email is view-only', (
     WidgetTester tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     final saved = <String>[];
+    var changePasswordOpened = 0;
     await tester.pumpWidget(
       MaterialApp(
         home: HomeScreen(
           profile: const UserProfile(email: 'user@gmail.com'),
-          onSaveProfile: (profile, newPassword) {
-            if (profile.email == 'taken@gmail.com') return 'Email is taken.';
+          onSaveProfile: (profile) async {
+            if (profile.contactNumber == '09999999999') {
+              return 'Contact number was rejected.';
+            }
             saved.add(
-              '${profile.name}/${profile.email}/$newPassword/'
-              '${profile.contactNumber}',
+              '${profile.name}/${profile.email}/${profile.contactNumber}',
             );
             return null;
           },
+          onChangePassword: () => changePasswordOpened++,
         ),
       ),
     );
@@ -635,40 +733,92 @@ void main() {
       'user@gmail.com',
     );
 
-    await tester.enterText(field(1), 'user@example.com');
-    await tester.enterText(field(2), 'weak');
-    await tester.enterText(field(3), '12345');
-    await save();
-    expect(find.text('Please enter your name.'), findsOneWidget);
+    // Only the admin can change the email.
+    expect(tester.widget<TextField>(field(1)).readOnly, isTrue);
     expect(
-      find.text('Use an email like @gmail.com or @yahoo.com.'),
+      find.text('Only your station admin can change your email.'),
       findsOneWidget,
     );
-    expect(find.text('Use at least 8 characters.'), findsOneWidget);
+
+    // Change Password opens its own screen.
+    await tester.tap(find.text('Change Password'));
+    expect(changePasswordOpened, 1);
+
+    await tester.enterText(field(2), '12345');
+    await save();
+    expect(find.text('Please enter your name.'), findsOneWidget);
     expect(
       find.text('Enter a valid mobile number, e.g. 09171234567.'),
       findsOneWidget,
     );
     expect(saved, isEmpty);
 
+    // The backend's answer is shown.
     await tester.enterText(field(0), 'Jeypi Denzo');
-    await tester.enterText(field(1), 'taken@gmail.com');
-    await tester.enterText(field(2), 'Newpass2@');
-    await tester.enterText(field(3), '0917 123 4567');
+    await tester.enterText(field(2), '09999999999');
     await save();
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
-    expect(find.text('Email is taken.'), findsOneWidget);
+    expect(find.text('Contact number was rejected.'), findsOneWidget);
 
-    await tester.enterText(field(1), 'jeypi@gmail.com');
+    await tester.enterText(field(2), '0917 123 4567');
     await save();
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
-    expect(saved, ['Jeypi Denzo/jeypi@gmail.com/Newpass2@/0917 123 4567']);
+    expect(saved, ['Jeypi Denzo/user@gmail.com/0917 123 4567']);
     expect(find.byType(EditProfileScreen), findsNothing);
     expect(find.text('Jeypi Denzo'), findsOneWidget);
-    expect(find.text('jeypi@gmail.com'), findsOneWidget);
     expect(find.textContaining('Jeypi!'), findsOneWidget);
+  });
+
+  testWidgets('Change Password checks the fields, then sends the code request', (
+    WidgetTester tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final sent = <String>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ChangePasswordScreen(
+          onSubmit: (current, next) async {
+            if (current != 'Traffic#2026') return 'Current password is wrong.';
+            sent.add('$current/$next');
+            return null;
+          },
+        ),
+      ),
+    );
+    Finder field(int index) => find.byType(TextField).at(index);
+
+    await tester.tap(find.text('Send Code'));
+    await tester.pump();
+    expect(find.text('Please enter your current password.'), findsOneWidget);
+
+    await tester.enterText(field(0), 'Traffic#2026');
+    await tester.enterText(field(1), 'Traffic#2026');
+    await tester.enterText(field(2), 'Traffic#2026');
+    await tester.pump();
+    await tester.tap(find.text('Send Code'));
+    await tester.pump();
+    expect(
+      find.text('New password must be different from the current one.'),
+      findsOneWidget,
+    );
+
+    await tester.enterText(field(0), 'Wrong#123456');
+    await tester.enterText(field(1), 'Newpass#2026');
+    await tester.enterText(field(2), 'Newpass#2026');
+    await tester.pump();
+    await tester.tap(find.text('Send Code'));
+    await tester.pumpAndSettle();
+    expect(find.text('Current password is wrong.'), findsOneWidget);
+
+    await tester.enterText(field(0), 'Traffic#2026');
+    await tester.pump();
+    await tester.tap(find.text('Send Code'));
+    await tester.pumpAndSettle();
+    expect(sent, ['Traffic#2026/Newpass#2026']);
   });
 
   testWidgets('Alert filters narrow the list by type', (
