@@ -280,7 +280,7 @@ router.post('/logout', requireEnforcer, async (req, res) => {
 router.get('/me', requireEnforcer, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT e.id, e.email, e.full_name, e.badge_no, s.name AS sector, c.cap_code
+      `SELECT e.id, e.email, e.full_name, e.badge_no, e.contact_no, s.name AS sector, c.cap_code
        FROM enforcers e
        LEFT JOIN sectors s ON s.id = e.sector_id
        LEFT JOIN caps c ON c.id = e.cap_id
@@ -293,9 +293,158 @@ router.get('/me', requireEnforcer, async (req, res) => {
       email: me.email,
       fullName: me.full_name,
       badgeNo: me.badge_no,
+      contactNo: me.contact_no,
       sector: me.sector,
       capCode: me.cap_code,
     });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: 'Something went wrong.' });
+  }
+});
+
+// FORGOT PASSWORD
+//   1. email (+ phone key) -> code by email (same answer whether or not the email exists)
+//   2. code -> reset pass
+//   3. new strong password -> logged in on this phone, account unlocked
+
+// Ties a reset pass to the current password, so it works only once.
+function passwordStamp(passwordHash) {
+  return crypto.createHash('sha256').update(passwordHash).digest('hex').slice(0, 16);
+}
+
+const RESET_SENT = 'If this email has an account, a 6-digit code was sent to it. Check your spam folder too.';
+
+router.post('/forgot-password/start', async (req, res) => {
+  try {
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const deviceKey = String(req.body.deviceKey || '');
+    if (!email) return res.status(400).json({ error: 'Email is required.' });
+    if (deviceKey.length < 32 || deviceKey.length > 200) {
+      return res.status(400).json({ error: 'The app did not send a valid phone key.' });
+    }
+
+    const settings = await getSettings();
+    const found = await pool.query(
+      'SELECT id, email FROM enforcers WHERE lower(email) = $1 AND is_active',
+      [email]
+    );
+    const enforcer = found.rows[0];
+    const dkh = hashDeviceKey(deviceKey);
+
+    // Unknown email: answer the same way, with a pass that can never match a code.
+    if (!enforcer) {
+      await audit('enforcer_reset_unknown', 'Password reset asked for an unknown email', {
+        usernameTried: email,
+      });
+      return res.json({
+        message: RESET_SENT,
+        pendingToken: signStep(
+          { sub: crypto.randomUUID(), typ: 'enforcer-reset-pending', dkh },
+          settings.otp_valid_minutes
+        ),
+        codeValidMinutes: settings.otp_valid_minutes,
+      });
+    }
+    const who = { enforcerId: enforcer.id };
+
+    const otp = await createCode(who, 'reset_password', settings.otp_valid_minutes);
+    try {
+      await sendEmail(
+        enforcer.email,
+        'Your CAPartner password reset code',
+        `<p>Your CAPartner password reset code is:</p>
+         <p style="font-size:24px;letter-spacing:4px"><b>${otp.code}</b></p>
+         <p>It is valid for ${settings.otp_valid_minutes} minutes and works once.</p>
+         <p>If you did not ask to reset your password, tell your admin.</p>`
+      );
+    } catch (mailError) {
+      console.error('Could not send reset email: ' + mailError.message);
+      await cancelCode(otp.id);
+      return res.status(502).json({ error: 'We could not send the code email. Please try again.' });
+    }
+
+    await audit('enforcer_reset_code_sent', 'Password reset code emailed', who);
+    res.json({
+      message: RESET_SENT,
+      pendingToken: signStep({ sub: enforcer.id, typ: 'enforcer-reset-pending', dkh }, settings.otp_valid_minutes),
+      codeValidMinutes: settings.otp_valid_minutes,
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: 'Something went wrong.' });
+  }
+});
+
+router.post('/forgot-password/verify', async (req, res) => {
+  try {
+    const pending = readToken(String(req.body.pendingToken || ''), 'enforcer-reset-pending');
+    if (!pending) return res.status(401).json(START_AGAIN);
+
+    const found = await pool.query(
+      'SELECT id, password_hash FROM enforcers WHERE id = $1 AND is_active',
+      [pending.sub]
+    );
+    const enforcer = found.rows[0];
+    if (!enforcer) return res.status(401).json(codeError({ reason: 'none' }));
+    const who = { enforcerId: enforcer.id };
+
+    const result = await checkCode(who, 'reset_password', String(req.body.code || '').trim());
+    if (!result.ok) {
+      if (result.reason !== 'none') {
+        await audit('enforcer_reset_code_failed', 'Wrong password reset code entered', who);
+      }
+      return res.status(401).json(codeError(result));
+    }
+
+    res.json({
+      status: 'set_new_password',
+      resetToken: signStep(
+        { sub: enforcer.id, typ: 'enforcer-reset', dkh: pending.dkh, pw: passwordStamp(enforcer.password_hash) },
+        15
+      ),
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: 'Something went wrong.' });
+  }
+});
+
+router.post('/forgot-password/finish', async (req, res) => {
+  try {
+    const reset = readToken(String(req.body.resetToken || ''), 'enforcer-reset');
+    if (!reset) return res.status(401).json(START_AGAIN);
+
+    const found = await pool.query(
+      'SELECT id, email, full_name, password_hash FROM enforcers WHERE id = $1 AND is_active',
+      [reset.sub]
+    );
+    const enforcer = found.rows[0];
+    if (!enforcer || passwordStamp(enforcer.password_hash) !== reset.pw) {
+      return res.status(401).json(START_AGAIN);
+    }
+
+    const newPassword = String(req.body.newPassword || '');
+    const problem = checkStrength(newPassword, enforcer.email);
+    if (problem) return res.status(400).json({ error: problem });
+    if (await bcrypt.compare(newPassword, enforcer.password_hash)) {
+      return res.status(400).json({ error: 'New password must be different from the old one.' });
+    }
+
+    const newHash = await bcrypt.hash(newPassword, 12);
+    await pool.query(
+      `UPDATE enforcers
+       SET password_hash = $1, must_change_password = false, temp_password_expires_at = NULL,
+           activated_at = COALESCE(activated_at, now()), failed_login_count = 0, is_locked = false
+       WHERE id = $2`,
+      [newHash, enforcer.id]
+    );
+
+    const pass = await registerPhoneAndLogIn(enforcer.id, reset.dkh);
+    await audit('enforcer_password_reset', 'Enforcer reset their password and logged in', {
+      enforcerId: enforcer.id,
+    });
+    res.json(loggedIn(pass, enforcer));
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ error: 'Something went wrong.' });

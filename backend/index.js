@@ -19,6 +19,8 @@ app.use('/admin/account', require('./routes/adminAccount'));
 app.use('/admin', require('./routes/adminAuth'));
 app.use('/enforcers', require('./routes/enforcers'));
 app.use('/enforcer', require('./routes/enforcerAuth'));
+app.use('/enforcer', require('./routes/enforcerAccount'));
+app.use('/', require('./routes/stationData'));
 
 // Safety net: never show error details or file paths to the outside world.
 app.use((err, req, res, next) => {
