@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './index.css';
 import SplashScreen from './components/SplashScreen';
 import LoginPage from './pages/LoginPage';
@@ -8,9 +8,34 @@ import MonitoringPage from './pages/MonitoringPage';
 import CameraPage from './pages/CameraPage';
 import SettingsPage from './pages/SettingsPage';
 import ActivityPage from './pages/ActivityPage';
+import { saveSession, loadSession, clearSession } from './api';
 
 export default function App() {
   const [currentStep, setCurrentStep] = useState('splash');
+  // pending = password was right, waiting for the email code
+  const [pending, setPending] = useState(null);
+  // session = fully logged in (login pass + when it ends)
+  const [session, setSession] = useState(loadSession);
+  const [loginNotice, setLoginNotice] = useState('');
+
+  // LOG OUT: FORGET THE LOGIN PASS AND GO BACK TO THE LOGIN PAGE
+  const logout = (notice = '') => {
+    clearSession();
+    setSession(null);
+    setPending(null);
+    setLoginNotice(notice);
+    setCurrentStep('login');
+  };
+
+  // AUTO SIGN-OUT WHEN THE LOGIN PASS ENDS (auto_signout_minutes IN THE BACKEND SETTINGS)
+  useEffect(() => {
+    if (!session) return undefined;
+    const timer = setTimeout(
+      () => logout('You were signed out automatically. Please log in again.'),
+      Math.max(session.expiresAt - Date.now(), 0)
+    );
+    return () => clearTimeout(timer);
+  }, [session]);
 
   // HANDLE TAB NAVIGATION BETWEEN DASHBOARD PAGES
   const handleTabChange = (tabName) => {
@@ -25,16 +50,22 @@ export default function App() {
   if (currentStep === 'splash') {
     return (
       <SplashScreen
-        onFinish={() => setCurrentStep('login')}
+        onFinish={() => setCurrentStep(session ? 'overview' : 'login')}
         duration={1500}
       />
     );
   }
 
-  if (currentStep === 'login') {
+  // NO DASHBOARD PAGE WITHOUT A LOGIN PASS
+  if (currentStep === 'login' || (!session && currentStep !== 'twoFactor')) {
     return (
       <LoginPage
-        onLoginSuccess={() => setCurrentStep('twoFactor')}
+        notice={loginNotice}
+        onLoginSuccess={(info) => {
+          setPending(info);
+          setLoginNotice('');
+          setCurrentStep('twoFactor');
+        }}
       />
     );
   }
@@ -42,8 +73,15 @@ export default function App() {
   if (currentStep === 'twoFactor') {
     return (
       <TwoFactorPage
-        onVerifySuccess={() => setCurrentStep('overview')}
-        onBackToLogin={() => setCurrentStep('login')} 
+        pendingToken={pending?.pendingToken}
+        userEmail={pending?.email}
+        codeValidMinutes={pending?.codeValidMinutes}
+        onVerifySuccess={(result) => {
+          setSession(saveSession(result));
+          setPending(null);
+          setCurrentStep('overview');
+        }}
+        onBackToLogin={() => logout()}
       />
     );
   }
@@ -52,7 +90,7 @@ export default function App() {
     return (
       <OverviewPage
         onTabChange={handleTabChange}
-        onLogout={() => setCurrentStep('login')}
+        onLogout={() => logout()}
       />
     );
   }
@@ -61,7 +99,7 @@ export default function App() {
     return (
       <MonitoringPage
         onTabChange={handleTabChange}
-        onLogout={() => setCurrentStep('login')}
+        onLogout={() => logout()}
       />
     );
   }
@@ -70,7 +108,7 @@ export default function App() {
     return (
       <CameraPage
         onTabChange={handleTabChange}
-        onLogout={() => setCurrentStep('login')}
+        onLogout={() => logout()}
       />
     );
   }
@@ -79,7 +117,7 @@ export default function App() {
     return (
       <ActivityPage
         onTabChange={handleTabChange}
-        onLogout={() => setCurrentStep('login')}
+        onLogout={() => logout()}
       />
     );
   }
@@ -88,7 +126,7 @@ export default function App() {
     return (
       <SettingsPage
         onTabChange={handleTabChange}
-        onLogout={() => setCurrentStep('login')}
+        onLogout={() => logout()}
       />
     );
   }

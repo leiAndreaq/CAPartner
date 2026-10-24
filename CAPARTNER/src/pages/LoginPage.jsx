@@ -1,19 +1,44 @@
 import { useState } from 'react';
 import { Icon } from '@iconify/react';
+import { adminLogin, getRememberedEmail, setRememberedEmail } from '../api';
 
 const capLogo = new URL('../assets/CAP LOGO.png', import.meta.url).href;
 const accountMale = new URL('../assets/Account Male.png', import.meta.url).href;
 
-export default function LoginPage({ onLoginSuccess }) {
-  const [username, setUsername] = useState('');
+export default function LoginPage({ onLoginSuccess, notice = '' }) {
+  const [email, setEmail] = useState(getRememberedEmail);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
+  // STEP 1 OF LOGIN: CHECK EMAIL + PASSWORD WITH THE BACKEND, WHICH EMAILS A 6-DIGIT CODE
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (onLoginSuccess) {
-      onLoginSuccess();
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !password) {
+      setError('Please enter your email and password.');
+      return;
+    }
+
+    setError('');
+    setIsSubmitting(true);
+    try {
+      const result = await adminLogin(cleanEmail, password);
+      setRememberedEmail(rememberMe ? cleanEmail : '');
+      setPassword('');
+      if (onLoginSuccess) {
+        onLoginSuccess({
+          pendingToken: result.pendingToken,
+          email: cleanEmail,
+          codeValidMinutes: result.codeValidMinutes,
+        });
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -106,9 +131,57 @@ export default function LoginPage({ onLoginSuccess }) {
               Sign in to access the CAPartner Admin Dashboard.
             </p>
 
-            <form onSubmit={handleSubmit}>
-              
-              {/* ADMIN USERNAME INPUT */}
+            <form onSubmit={handleSubmit} noValidate>
+
+              {/* INFO MESSAGE (EXAMPLE: SIGNED OUT AFTER 15 MINUTES) */}
+              {notice && !error && (
+                <div
+                  style={{
+                    width: '100%',
+                    backgroundColor: '#f0fdf4',
+                    border: '1px solid #86efac',
+                    color: '#064018',
+                    padding: '10px 16px',
+                    borderRadius: '12px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    textAlign: 'center',
+                    marginBottom: '16px',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  {notice}
+                </div>
+              )}
+
+              {/* ERROR MESSAGE FROM THE BACKEND (WRONG PASSWORD, LOCKED, SERVER DOWN) */}
+              {error && (
+                <div
+                  role="alert"
+                  style={{
+                    width: '100%',
+                    backgroundColor: '#fef2f2',
+                    border: '1px solid #fca5a5',
+                    color: '#dc2626',
+                    padding: '10px 16px',
+                    borderRadius: '12px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    textAlign: 'center',
+                    marginBottom: '16px',
+                    boxSizing: 'border-box',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <Icon icon="mdi:alert-circle" width="16" height="16" color="#dc2626" />
+                  {error}
+                </div>
+              )}
+
+              {/* ADMIN EMAIL INPUT */}
               <div className="mb-4" style={{ marginBottom: '16px' }}>
                 <label
                   className="block text-xs font-bold mb-1.5"
@@ -120,13 +193,14 @@ export default function LoginPage({ onLoginSuccess }) {
                     marginBottom: '6px',
                   }}
                 >
-                  Admin Username
+                  Admin Email
                 </label>
                 <input
-                  type="text"
-                  placeholder="Enter your username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  type="email"
+                  autoComplete="username"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="w-full px-4 py-3 rounded-lg bg-white text-sm font-semibold text-slate-800 outline-none box-border"
                   style={{
                     width: '100%',
@@ -169,6 +243,7 @@ export default function LoginPage({ onLoginSuccess }) {
                 >
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -269,6 +344,7 @@ export default function LoginPage({ onLoginSuccess }) {
               {/* SUBMIT BUTTON */}
               <button
                 type="submit"
+                disabled={isSubmitting}
                 className="w-full py-3 text-white border-none rounded-lg font-extrabold text-sm cursor-pointer tracking-wider transition-colors"
                 style={{
                   width: '100%',
@@ -279,11 +355,12 @@ export default function LoginPage({ onLoginSuccess }) {
                   borderRadius: '8px',
                   fontWeight: 800,
                   fontSize: '0.9rem',
-                  cursor: 'pointer',
+                  cursor: isSubmitting ? 'wait' : 'pointer',
+                  opacity: isSubmitting ? 0.8 : 1,
                   letterSpacing: '0.05em',
                 }}
               >
-                LOGIN
+                {isSubmitting ? 'SENDING CODE...' : 'LOGIN'}
               </button>
 
             </form>

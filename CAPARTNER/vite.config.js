@@ -7,4 +7,13 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    // Forward /api/... to the CAPartner backend, so the browser never calls another address directly
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+    },
+  },
 })

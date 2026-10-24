@@ -1,10 +1,25 @@
 import { useState, useRef } from 'react';
 import { Icon } from '@iconify/react';
+import { adminVerifyCode } from '../api';
 
-export default function TwoFactorPage({ onVerifySuccess, userEmail = "*******@gmail.com" }) {
+// SHOW ONLY THE START OF THE EMAIL: capartnerwithus@gmail.com -> ca*************@gmail.com
+function maskEmail(email) {
+  const [name, domain] = String(email).split('@');
+  if (!domain) return '*******@gmail.com';
+  return name.slice(0, 2) + '*'.repeat(Math.max(name.length - 2, 3)) + '@' + domain;
+}
+
+export default function TwoFactorPage({
+  onVerifySuccess,
+  onBackToLogin,
+  pendingToken,
+  userEmail = '',
+  codeValidMinutes = 15,
+}) {
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mustStartAgain, setMustStartAgain] = useState(false);
   const inputRefs = useRef([]);
 
   // HANDLE SINGLE-DIGIT TYPING AND AUTO-FOCUS
@@ -43,9 +58,13 @@ export default function TwoFactorPage({ onVerifySuccess, userEmail = "*******@gm
     }
   };
 
-  // FRONTEND-ONLY VALIDATION & VERIFY SUBMISSION
-  const handleVerify = (e) => {
+  // VALIDATION, THEN STEP 2 OF LOGIN: THE BACKEND CHECKS THE CODE
+  const handleVerify = async (e) => {
     e.preventDefault();
+    if (mustStartAgain) {
+      if (onBackToLogin) onBackToLogin();
+      return;
+    }
     const fullCode = code.join('');
 
     // 1. Validation check for completely empty input
@@ -62,14 +81,23 @@ export default function TwoFactorPage({ onVerifySuccess, userEmail = "*******@gm
 
     setError('');
     setIsSubmitting(true);
-
-    // Simulate instant client-side transition
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      const result = await adminVerifyCode(pendingToken, fullCode);
       if (onVerifySuccess) {
-        onVerifySuccess();
+        onVerifySuccess(result);
       }
-    }, 600);
+    } catch (err) {
+      setIsSubmitting(false);
+      setCode(['', '', '', '', '', '']);
+      inputRefs.current[0]?.focus();
+      if (err.data && typeof err.data.triesLeft === 'number') {
+        setError(`${err.message} ${err.data.triesLeft} ${err.data.triesLeft === 1 ? 'try' : 'tries'} left.`);
+      } else {
+        // Code expired, used up, or the server is down: a new login is needed
+        setError(err.message);
+        if (err.status !== 0) setMustStartAgain(true);
+      }
+    }
   };
 
   return (
@@ -165,7 +193,7 @@ export default function TwoFactorPage({ onVerifySuccess, userEmail = "*******@gm
             maxWidth: '360px',
           }}
         >
-          Enter the 6-digit code sent to your registered email address ({userEmail}). The code expires in 5 minutes.
+          Enter the 6-digit code sent to your registered email address ({maskEmail(userEmail)}). The code expires in {codeValidMinutes} minutes. Check your spam folder too.
         </p>
 
         {/* ERROR VALIDATION MESSAGE */}
@@ -251,7 +279,7 @@ export default function TwoFactorPage({ onVerifySuccess, userEmail = "*******@gm
               letterSpacing: '0.02em',
             }}
           >
-            {isSubmitting ? 'Verifying...' : 'Verify'}
+            {mustStartAgain ? 'Back to login' : isSubmitting ? 'Verifying...' : 'Verify'}
           </button>
         </form>
 
@@ -270,10 +298,10 @@ export default function TwoFactorPage({ onVerifySuccess, userEmail = "*******@gm
           Didn't receive the code?{' '}
           <button
             type="button"
+            title="A new code needs your password again"
             onClick={() => {
-              setCode(['', '', '', '', '', '']);
-              setError('');
-              inputRefs.current[0]?.focus();
+              // A new code is sent by logging in again (the backend needs the password for that)
+              if (onBackToLogin) onBackToLogin();
             }}
             className="font-bold underline text-[#064018] cursor-pointer not-italic bg-transparent border-none p-0"
             style={{
