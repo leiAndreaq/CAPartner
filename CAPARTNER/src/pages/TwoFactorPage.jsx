@@ -78,7 +78,7 @@ export default function TwoFactorPage({ onVerifySuccess, userEmail = "*******@gm
       style={{
         minHeight: '100vh',
         width: '100vw',
-        backgroundColor: '#064018',
+        background: 'linear-gradient(180deg, rgba(3, 17, 11, 0.5), rgba(3, 17, 11, 0.62))',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -86,46 +86,47 @@ export default function TwoFactorPage({ onVerifySuccess, userEmail = "*******@gm
         boxSizing: 'border-box',
       }}
     >
-      {/* CENTERED WHITE CARD CONTAINER */}
       <div
-        className="w-full max-w-[460px] bg-white rounded-[28px] p-8 md:p-10 shadow-2xl flex flex-col items-center box-border"
         style={{
           width: '100%',
-          maxWidth: '460px',
-          backgroundColor: '#ffffff',
+          maxWidth: '510px',
+          background: 'rgba(8, 40, 26, 0.76)',
+          border: '1px solid rgba(255,255,255,0.12)',
           borderRadius: '28px',
-          padding: '36px 32px',
-          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.35)',
+          padding: '36px 28px 28px',
+          boxShadow: '0 26px 60px rgba(0, 0, 0, 0.35)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           boxSizing: 'border-box',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
         }}
       >
-        {/* TOP CIRCULAR PHONE & MAIL ICON */}
         <div
-          className="w-28 h-28 rounded-full flex items-center justify-center mb-6"
           style={{
-            width: '110px',
-            height: '110px',
+            width: '112px',
+            height: '112px',
             borderRadius: '50%',
-            backgroundColor: '#064018',
+            background: 'linear-gradient(180deg, #0c4d2d 0%, #0b3b25 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            marginBottom: '24px',
+            marginBottom: '22px',
+            border: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 12px 26px rgba(3, 17, 11, 0.28)',
           }}
         >
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Icon icon="lucide:smartphone" width="54" height="54" color="#ffffff" />
+            <Icon icon="lucide:smartphone" width="52" height="52" color="#ffffff" />
             <div
               style={{
                 position: 'absolute',
                 top: '50%',
                 left: '50%',
                 transform: 'translate(-50%, -50%)',
-                backgroundColor: '#064018',
-                borderRadius: '4px',
+                backgroundColor: '#0b3b25',
+                borderRadius: '8px',
                 padding: '2px',
                 display: 'flex',
                 alignItems: 'center',
@@ -137,64 +138,61 @@ export default function TwoFactorPage({ onVerifySuccess, userEmail = "*******@gm
           </div>
         </div>
 
-        {/* PAGE TITLE */}
         <h2
-          className="text-2xl md:text-3xl font-extrabold text-[#064018] text-center mb-2 tracking-tight"
           style={{
-            fontSize: '1.75rem',
+            fontSize: 'clamp(2rem, 3vw, 2.5rem)',
             fontWeight: 800,
-            color: '#064018',
+            color: '#ffffff',
             textAlign: 'center',
-            margin: '0 0 8px 0',
-            letterSpacing: '-0.02em',
+            margin: '0 0 12px 0',
+            letterSpacing: '-0.04em',
+            lineHeight: 1.1,
           }}
         >
           Two-factor verification
         </h2>
 
-        {/* SUBTITLE */}
         <p
-          className="text-xs md:text-sm text-slate-600 text-center italic mb-6 leading-relaxed"
           style={{
-            fontSize: '0.8rem',
-            color: '#475569',
+            fontSize: '0.9rem',
+            color: '#e5f7ef',
             textAlign: 'center',
-            fontStyle: 'italic',
-            margin: '0 0 24px 0',
-            lineHeight: '1.4',
-            maxWidth: '360px',
+            margin: '0 0 26px 0',
+            lineHeight: '1.6',
+            maxWidth: '390px',
+            fontWeight: 500,
           }}
         >
           Enter the 6-digit code sent to your registered email address ({userEmail}). The code expires in 5 minutes.
         </p>
 
-        {/* ERROR VALIDATION MESSAGE */}
         {error && (
           <div
-            className="w-full bg-red-50 border border-red-300 text-red-600 px-4 py-2.5 rounded-xl text-xs font-bold text-center mb-5 flex items-center justify-center gap-1.5"
             style={{
               width: '100%',
-              backgroundColor: '#fef2f2',
-              border: '1px solid #fca5a5',
-              color: '#dc2626',
-              padding: '10px 16px',
+              backgroundColor: 'rgba(254, 202, 202, 0.18)',
+              border: '1px solid rgba(248, 113, 113, 0.5)',
+              color: '#fee2e2',
+              padding: '10px 14px',
               borderRadius: '12px',
-              fontSize: '0.78rem',
+              fontSize: '0.8rem',
               fontWeight: 700,
               textAlign: 'center',
               marginBottom: '20px',
               boxSizing: 'border-box',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
             }}
           >
-            <Icon icon="mdi:alert-circle" width="16" height="16" color="#dc2626" />
+            <Icon icon="mdi:alert-circle" width="16" height="16" color="#fecaca" />
             {error}
           </div>
         )}
 
-        {/* OTP INPUTS FORM */}
-        <form onSubmit={handleVerify} className="w-full flex flex-col items-center" style={{ width: '100%' }}>
+        <form onSubmit={handleVerify} style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div
-            className="flex gap-2 md:gap-2.5 justify-center mb-7 w-full"
             style={{
               display: 'flex',
               gap: '10px',
@@ -211,60 +209,56 @@ export default function TwoFactorPage({ onVerifySuccess, userEmail = "*******@gm
                 inputMode="numeric"
                 maxLength={1}
                 value={digit}
-                placeholder={digit ? '' : ''}
                 onChange={(e) => handleChange(idx, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(idx, e)}
                 onPaste={handlePaste}
-                className="w-11 h-14 md:w-12 md:h-14 rounded-xl text-center text-xl font-bold outline-none transition-colors"
                 style={{
-                  width: '46px',
-                  height: '54px',
-                  borderRadius: '12px',
-                  border: error ? '2px solid #dc2626' : '2px solid #064018',
-                  backgroundColor: '#ffffff',
-                  color: '#064018',
-                  fontSize: '1.25rem',
+                  width: '48px',
+                  height: '58px',
+                  borderRadius: '14px',
+                  border: error ? '2px solid rgba(248, 113, 113, 0.9)' : '2px solid rgba(255,255,255,0.38)',
+                  backgroundColor: 'rgba(255,255,255,0.95)',
+                  color: '#08341d',
+                  fontSize: '1.7rem',
                   fontWeight: 800,
                   textAlign: 'center',
                   outline: 'none',
                   boxSizing: 'border-box',
+                  boxShadow: 'inset 0 1px 3px rgba(15,23,42,0.08)',
                 }}
               />
             ))}
           </div>
 
-          {/* VERIFY BUTTON */}
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-3.5 bg-[#064018] hover:bg-[#042d11] text-white border-none rounded-2xl font-extrabold text-sm cursor-pointer tracking-wider transition-colors"
             style={{
               width: '100%',
-              padding: '14px',
-              backgroundColor: '#064018',
+              padding: '16px 18px',
+              background: 'linear-gradient(180deg, #0d5b35 0%, #0a492c 100%)',
               color: '#ffffff',
-              border: 'none',
+              border: '1px solid rgba(255,255,255,0.12)',
               borderRadius: '16px',
               fontWeight: 800,
-              fontSize: '0.95rem',
+              fontSize: '1.05rem',
               cursor: isSubmitting ? 'wait' : 'pointer',
               letterSpacing: '0.02em',
+              boxShadow: '0 14px 28px rgba(5, 35, 22, 0.24)',
             }}
           >
             {isSubmitting ? 'Verifying...' : 'Verify'}
           </button>
         </form>
 
-        {/* RESEND OTP FOOTER LINK */}
         <p
-          className="text-xs text-slate-700 text-center mt-6 italic"
           style={{
-            fontSize: '0.78rem',
-            color: '#334155',
+            fontSize: '0.8rem',
+            color: '#e5f7ef',
             textAlign: 'center',
-            marginTop: '24px',
+            marginTop: '22px',
             marginBottom: 0,
-            fontStyle: 'italic',
+            fontWeight: 500,
           }}
         >
           Didn't receive the code?{' '}
@@ -275,12 +269,10 @@ export default function TwoFactorPage({ onVerifySuccess, userEmail = "*******@gm
               setError('');
               inputRefs.current[0]?.focus();
             }}
-            className="font-bold underline text-[#064018] cursor-pointer not-italic bg-transparent border-none p-0"
             style={{
-              color: '#064018',
+              color: '#ffffff',
               fontWeight: 800,
               textDecoration: 'underline',
-              fontStyle: 'normal',
               cursor: 'pointer',
               background: 'none',
               border: 'none',
@@ -290,7 +282,6 @@ export default function TwoFactorPage({ onVerifySuccess, userEmail = "*******@gm
             Resend OTP
           </button>
         </p>
-
       </div>
     </div>
   );

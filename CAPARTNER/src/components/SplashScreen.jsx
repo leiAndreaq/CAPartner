@@ -37,7 +37,7 @@ export default function SplashScreen({ onFinish, duration = 1500 }) {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#033015',
+        background: 'radial-gradient(circle at center, rgba(16, 185, 129, 0.22) 0%, rgba(4, 38, 24, 0.95) 32%, rgba(2, 15, 10, 1) 100%)',
         userSelect: 'none',
         fontFamily: "'Inter', sans-serif",
         transition: 'opacity 500ms ease-out',
@@ -46,17 +46,15 @@ export default function SplashScreen({ onFinish, duration = 1500 }) {
         pointerEvents: fadeOut ? 'none' : 'auto',
       }}
     >
-      {/* Ambient Radial Background Glow */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
-          background: 'radial-gradient(circle at center, rgba(34,197,94,0.12) 0%, transparent 70%)',
+          background: 'radial-gradient(circle at 50% 30%, rgba(34,197,94,0.18), transparent 25%), radial-gradient(circle at 50% 80%, rgba(16,185,129,0.12), transparent 35%)',
           pointerEvents: 'none',
         }}
       />
 
-      {/* Content Container */}
       <div
         style={{
           position: 'relative',
@@ -64,18 +62,23 @@ export default function SplashScreen({ onFinish, duration = 1500 }) {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          padding: '24px',
+          padding: '28px 24px',
           textAlign: 'center',
-          maxWidth: '90vw',
+          maxWidth: '92vw',
         }}
       >
         <div
           style={{
             position: 'relative',
-            marginBottom: '8px',
+            marginBottom: '12px',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
+            padding: '18px 20px 12px',
+            borderRadius: '22px',
+            border: '1px solid rgba(255,255,255,0.09)',
+            background: 'rgba(255,255,255,0.03)',
+            boxShadow: '0 28px 60px rgba(0,0,0,0.18)',
           }}
         >
           <img
@@ -84,11 +87,11 @@ export default function SplashScreen({ onFinish, duration = 1500 }) {
             draggable="false"
             style={{
               height: 'auto',
-              width: '380px',
-              maxWidth: '80vw',
+              width: '360px',
+              maxWidth: '78vw',
               pointerEvents: 'none',
               userSelect: 'none',
-              filter: 'drop-shadow(0 10px 25px rgba(0,0,0,0.5))',
+              filter: 'drop-shadow(0 18px 28px rgba(0,0,0,0.35))',
             }}
           />
         </div>
@@ -98,12 +101,12 @@ export default function SplashScreen({ onFinish, duration = 1500 }) {
             color: '#ffffff',
             fontFamily: "'Inter', sans-serif",
             fontWeight: 900,
-            fontSize: '4.5rem',
-            margin: '8px 0',
-            lineHeight: 1,
-            letterSpacing: '-0.03em',
+            fontSize: 'clamp(2.75rem, 6vw, 5rem)',
+            margin: '10px 0 10px',
+            lineHeight: 0.96,
+            letterSpacing: '-0.05em',
             userSelect: 'none',
-            filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.3))',
+            filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.25))',
           }}
         >
           CAPartner
@@ -111,17 +114,17 @@ export default function SplashScreen({ onFinish, duration = 1500 }) {
 
         <p
           style={{
-            color: '#ffffff',
+            color: '#ecfdf5',
             fontFamily: "'Inter', sans-serif",
-            fontSize: '2rem',
+            fontSize: 'clamp(0.9rem, 1.8vw, 1.75rem)',
             fontWeight: 500,
-            margin: '-5px 0 0 0',
+            margin: 0,
             opacity: 0.9,
-            whiteSpace: 'nowrap',
             width: '100%',
             textAlign: 'center',
+            lineHeight: 1.35,
             userSelect: 'none',
-                  }}
+          }}
         >
           CAPartner sa Kalusugan, CAPartner sa Kaligtasan
         </p>

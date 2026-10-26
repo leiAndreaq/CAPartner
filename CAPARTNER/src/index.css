@@ -1,4 +1,4 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+﻿@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 :root {
@@ -7,6 +7,14 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
+  --bg-deep: #03170d;
+  --bg-surface: #0a2618;
+  --text-primary: #0b1f13;
+  --text-soft: #475569;
+  --accent: #0ea85b;
+  --accent-strong: #0a7b48;
+  --accent-soft: #dff9ea;
+  --border-soft: rgba(15, 64, 38, 0.12);
 }
 
 html, body {
@@ -15,15 +23,35 @@ html, body {
   box-sizing: border-box;
   overflow-x: hidden;
   font-family: 'Inter', sans-serif;
-  background: #ffffff;
+  background: #03170d;
+  color: var(--text-primary);
   min-height: 100%;
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
 }
 
-* {
-  box-sizing: border-box;
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: url("./assets/zabarte town center.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: blur(8px) brightness(0.72) saturate(0.86);
+  transform: scale(1.08);
+  z-index: -2;
 }
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 18, 12, 0.28);
+  z-index: -1;
+}
+
+* { box-sizing: border-box; }
 
 img, svg, iframe, video {
   max-width: 100%;
@@ -37,16 +65,54 @@ button, input, textarea, select {
 body {
   padding-left: max(0px, var(--safe-left));
   padding-right: max(0px, var(--safe-right));
+  min-height: 100vh;
 }
 
 #root {
   min-height: 100vh;
+  background: transparent !important;
+}
+
+body,
+#root,
+main,
+.overview-main,
+.monitoring-main,
+.camera-main,
+.activity-main,
+.settings-main,
+.min-h-screen,
+.bg-white {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+main,
+.overview-main,
+.monitoring-main,
+.camera-main,
+.activity-main,
+.settings-main {
+  background: rgba(255, 255, 255, 0.88) !important;
+  border: 1px solid rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  box-shadow: 0 18px 38px rgba(2, 15, 10, 0.08) !important;
+}
+
+.overview-main h1,
+.monitoring-main h1,
+.camera-main h1,
+.activity-main h1,
+.settings-main h1 {
+  color: #0d3c26 !important;
 }
 
 html {
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
-  background: #ffffff;
+  background: var(--bg-deep);
+  scroll-behavior: smooth;
 }
 
 button,
@@ -59,54 +125,28 @@ textarea {
   min-height: 44px;
 }
 
-button,
-input,
-select,
-textarea,
-[role="button"] {
-  font: inherit;
-}
-
 input,
 select,
 textarea {
   font-size: 16px !important;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  button:hover,
-  a:hover {
-    opacity: 1;
-  }
-
-  .cap-nav button:hover,
-  .cap-alert-header-actions button:hover,
-  .cap-mobile-bottom-nav button:hover,
-  .cap-profile-button:hover,
-  .cap-alert-button:hover {
-    filter: brightness(1.04);
-  }
+::selection {
+  background: rgba(14, 168, 91, 0.2);
+  color: var(--text-primary);
 }
 
-@media (max-width: 767px) {
-  body {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
+@media (hover: hover) and (pointer: fine) {
+  button:hover,
+  a:hover { opacity: 1; }
+}
 
-  .cap-header {
-    padding-top: calc(12px + env(safe-area-inset-top)) !important;
-  }
-
-  .overview-main,
-  .monitoring-main,
-  .camera-main,
-  .activity-main,
-  .settings-main {
-    padding-bottom: calc(96px + env(safe-area-inset-bottom)) !important;
-  }
-
-  .cap-mobile-bottom-nav {
-    padding-bottom: calc(10px + env(safe-area-inset-bottom)) !important;
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -114,22 +154,6 @@ textarea {
   main {
     padding-left: 12px !important;
     padding-right: 12px !important;
-  }
-
-  .activity-main,
-  .camera-main,
-  .overview-main,
-  .settings-main,
-  .monitoring-main {
-    padding: 20px 12px 32px !important;
-  }
-
-  .activity-main h1,
-  .camera-main h1,
-  .overview-main h1,
-  .settings-main h1,
-  .monitoring-title {
-    font-size: 1.9rem !important;
   }
 
   .login-shell {
@@ -154,536 +178,5 @@ textarea {
     border-radius: 0 0 18px 18px !important;
     min-height: 220px !important;
   }
-
-  .login-brand-panel img {
-    width: 210px !important;
-  }
-
-  .login-brand-panel h1 {
-    font-size: 2.3rem !important;
-  }
-
-  .monitoring-controls {
-    flex-direction: column !important;
-    align-items: stretch !important;
-  }
-
-  .monitoring-filters {
-    width: 100% !important;
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 8px !important;
-  }
-
-  .monitoring-filter-btn {
-    width: 100% !important;
-    padding: 10px 8px !important;
-    font-size: 0.72rem !important;
-  }
-
-  .monitoring-add-btn {
-    width: 100% !important;
-    justify-content: center !important;
-    padding: 11px 14px !important;
-  }
-
-  .monitoring-table-wrap {
-    overflow: visible !important;
-    border: 1px solid #033015 !important;
-    border-radius: 14px !important;
-    box-shadow: none !important;
-    background: #fff !important;
-  }
-
-  .monitoring-table {
-    display: block !important;
-    width: 100% !important;
-    overflow: hidden !important;
-    border-collapse: collapse !important;
-  }
-
-  .monitoring-table thead {
-    display: none !important;
-  }
-
-  .monitoring-table tbody {
-    display: block !important;
-    width: 100% !important;
-  }
-
-  .monitoring-table tbody tr {
-    display: block !important;
-    width: 100% !important;
-    border-bottom: 1px solid #033015 !important;
-    padding: 10px 12px !important;
-    background: #fff !important;
-  }
-
-  .monitoring-table tbody tr:last-child {
-    border-bottom: none !important;
-  }
-
-  .monitoring-table tbody td {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    width: 100% !important;
-    padding: 8px 6px !important;
-    border-right: none !important;
-    text-align: left !important;
-    font-size: 0.75rem !important;
-    word-break: break-word !important;
-  }
-
-  .monitoring-table tbody td::before {
-    content: attr(data-label);
-    color: #033015 !important;
-    font-weight: 800 !important;
-    font-size: 0.68rem !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.02em !important;
-    flex-shrink: 0 !important;
-    margin-right: 8px !important;
-    min-width: 72px !important;
-  }
-
-  .monitoring-table tbody td:last-child {
-    align-items: flex-start !important;
-  }
-
-  .monitoring-table tbody td:last-child > div {
-    width: 100% !important;
-    display: flex !important;
-    justify-content: flex-end !important;
-    gap: 6px !important;
-    flex-wrap: wrap !important;
-  }
-
-  .monitoring-table tbody td:last-child button {
-    padding: 6px 12px !important;
-    font-size: 0.68rem !important;
-  }
-
-  .audit-list {
-    display: block !important;
-  }
-
-  .audit-row {
-    display: grid !important;
-    grid-template-columns: 36px 1fr !important;
-    gap: 10px 12px !important;
-    padding: 12px 12px !important;
-  }
-
-  .audit-time,
-  .audit-detail,
-  .audit-user {
-    grid-column: 2 / 3 !important;
-    min-width: 0 !important;
-    width: 100% !important;
-    text-align: left !important;
-  }
-
-  .audit-badge {
-    grid-column: 1 / 2 !important;
-    width: 30px !important;
-    height: 30px !important;
-    margin-top: 2px !important;
-  }
-
-  .audit-user {
-    font-size: 0.72rem !important;
-  }
-
-  .camera-grid,
-  .overview-grid,
-  .settings-grid,
-  .map-grid,
-  .dashboard-grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  .camera-filters,
-  .camera-tools,
-  .settings-stack {
-    flex-direction: column !important;
-    align-items: stretch !important;
-  }
-
-  .camera-tab-row {
-    width: 100% !important;
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 8px !important;
-  }
-
-  .camera-feed-card {
-    min-height: 220px !important;
-  }
-
-  .settings-grid {
-    gap: 24px !important;
-  }
-
-  .overview-grid,
-  .overview-map-grid,
-  .overview-dashboard-grid,
-  .camera-live-grid {
-    display: block !important;
-  }
-
-  .overview-grid > div,
-  .overview-map-panel,
-  .overview-posts-panel,
-  .overview-alert-card,
-  .overview-side-stack,
-  .camera-live-grid > div,
-  .camera-grid > div {
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-    grid-column: auto !important;
-    margin-bottom: 14px !important;
-  }
-
-  .overview-map-panel,
-  .overview-posts-panel,
-  .overview-alert-card,
-  .overview-side-stack {
-    display: block !important;
-  }
-
-  .overview-posts-panel > div,
-  .overview-side-stack > div,
-  .overview-alert-card > div {
-    width: 100% !important;
-    max-width: 100% !important;
-  }
-
-  .overview-map-panel {
-    height: 260px !important;
-  }
-
-  .recording-row {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 12px !important;
-    padding: 14px 12px !important;
-  }
-
-  .recording-row > div:first-child {
-    width: 100% !important;
-  }
 }
-
-@media (max-width: 1024px) {
-  body {
-    background: linear-gradient(180deg, #4c4acb 0%, #6a66d9 100%) !important;
-  }
-
-  #root {
-    padding: 18px 0 30px !important;
-  }
-
-  .cap-header {
-    max-width: 440px !important;
-    margin: 0 auto !important;
-    padding: 10px 12px !important;
-    border-radius: 18px 18px 0 0 !important;
-    border: 1px solid rgba(255,255,255,0.12) !important;
-    border-bottom: 1px solid rgba(255,255,255,0.08) !important;
-  }
-
-  .cap-header-inner {
-    flex-wrap: wrap !important;
-    justify-content: center !important;
-    gap: 10px !important;
-  }
-
-  .cap-brand {
-    width: 100% !important;
-    justify-content: center !important;
-    text-align: center !important;
-  }
-
-  .cap-nav {
-    width: 100% !important;
-    justify-content: center !important;
-    gap: 12px 16px !important;
-    flex-wrap: wrap !important;
-  }
-
-  .cap-nav button {
-    font-size: 0.82rem !important;
-  }
-
-  .cap-header-actions {
-    width: 100% !important;
-    justify-content: center !important;
-  }
-
-  .cap-alert-panel {
-    left: 50% !important;
-    right: auto !important;
-    transform: translateX(-50%) !important;
-    width: min(92vw, 620px) !important;
-  }
-
-  .cap-alert-content {
-    grid-template-columns: 1fr !important;
-  }
-
-  .cap-alert-side {
-    border-left: none !important;
-    border-top: 1px solid rgba(148, 163, 184, 0.12) !important;
-  }
-
-  .overview-main,
-  .camera-main,
-  .monitoring-main,
-  .activity-main,
-  .settings-main {
-    max-width: 440px !important;
-    margin: 0 auto !important;
-    padding-top: 18px !important;
-    border-radius: 0 0 18px 18px !important;
-    background: #ffffff !important;
-    box-shadow: 0 18px 30px rgba(15, 23, 42, 0.14) !important;
-  }
-
-  .overview-grid,
-  .overview-map-grid,
-  .overview-dashboard-grid,
-  .camera-live-grid,
-  .map-grid {
-    display: block !important;
-  }
-
-  .overview-grid > div,
-  .overview-map-panel,
-  .overview-posts-panel,
-  .overview-alert-card,
-  .overview-side-stack,
-  .camera-grid > div,
-  .map-grid > div {
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-    grid-column: auto !important;
-    margin-bottom: 14px !important;
-  }
-}
-
-@media (max-width: 768px) {
-  .cap-brand-name {
-    font-size: 1.08rem !important;
-  }
-
-  .cap-brand-badge {
-    font-size: 0.52rem !important;
-    padding: 3px 8px !important;
-  }
-
-  .cap-brand-time {
-    font-size: 0.68rem !important;
-  }
-
-  .cap-nav {
-    gap: 8px 12px !important;
-  }
-
-  .cap-nav button {
-    font-size: 0.75rem !important;
-    gap: 6px !important;
-  }
-
-  .cap-alert-button {
-    width: 100% !important;
-    justify-content: center !important;
-  }
-
-  .cap-header-actions {
-    gap: 10px !important;
-  }
-
-  .cap-alert-panel {
-    width: min(94vw, 520px) !important;
-  }
-
-  .cap-alert-header {
-    padding: 14px 12px 10px !important;
-  }
-
-  .cap-alert-header-actions {
-    gap: 8px !important;
-  }
-
-  .cap-alert-item {
-    padding: 10px 8px !important;
-  }
-
-  .cap-alert-item-title,
-  .cap-alert-item-copy,
-  .cap-alert-item-meta {
-    font-size: 0.72rem !important;
-  }
-}
-@media (max-width: 1024px) {
-  .cap-header {
-    padding: 12px 14px !important;
-  }
-
-  .cap-header-inner {
-    gap: 12px !important;
-    align-items: flex-start !important;
-    flex-wrap: wrap !important;
-  }
-
-  .cap-brand {
-    width: 100% !important;
-    justify-content: center !important;
-  }
-
-  .cap-nav {
-    width: 100% !important;
-    justify-content: flex-start !important;
-    overflow-x: auto !important;
-    scrollbar-width: none !important;
-    -ms-overflow-style: none !important;
-    padding-bottom: 4px !important;
-  }
-
-  .cap-nav::-webkit-scrollbar {
-    display: none !important;
-  }
-
-  .cap-header-actions {
-    width: 100% !important;
-    justify-content: space-between !important;
-  }
-}
-
-@media (max-width: 640px) {
-  .cap-header {
-    padding: 10px 12px !important;
-  }
-
-  .cap-header-inner {
-    flex-direction: column !important;
-    align-items: stretch !important;
-  }
-
-  .cap-brand {
-    justify-content: center !important;
-    gap: 8px !important;
-    flex-wrap: wrap !important;
-  }
-
-  .cap-brand img {
-    width: 42px !important;
-  }
-
-  .cap-brand-name {
-    font-size: 1.1rem !important;
-  }
-
-  .cap-brand-badge {
-    font-size: 0.52rem !important;
-    padding: 4px 8px !important;
-  }
-
-  .cap-brand-time {
-    font-size: 0.66rem !important;
-    text-align: center !important;
-  }
-
-  .cap-nav {
-    width: 100% !important;
-    gap: 18px !important;
-    padding: 4px 0 8px !important;
-  }
-
-  .cap-nav button {
-    font-size: 0.72rem !important;
-    white-space: nowrap !important;
-  }
-
-  .cap-header-actions {
-    width: 100% !important;
-    justify-content: space-between !important;
-    gap: 10px !important;
-  }
-
-  .cap-alert-button {
-    padding: 8px 12px !important;
-    font-size: 0.7rem !important;
-    gap: 6px !important;
-  }
-
-  .cap-profile-button {
-    width: 36px !important;
-    height: 36px !important;
-    font-size: 0.8rem !important;
-  }
-
-  .cap-alert-panel {
-    left: 50% !important;
-    right: auto !important;
-    transform: translateX(-50%) !important;
-    width: min(92vw, 420px) !important;
-    maxWidth: 92vw !important;
-    top: calc(100% + 10px) !important;
-  }
-
-  .cap-alert-content {
-    grid-template-columns: 1fr !important;
-    minHeight: 320px !important;
-  }
-
-  .cap-alert-side {
-    display: none !important;
-  }
-
-  .cap-alert-header {
-    padding: 14px 14px 10px !important;
-  }
-
-  .cap-alert-header-title {
-    font-size: 0.95rem !important;
-  }
-
-  .cap-alert-header-actions {
-    gap: 8px !important;
-  }
-
-  .cap-alert-header-actions button {
-    font-size: 0.68rem !important;
-  }
-
-  .cap-alert-list {
-    maxHeight: 280px !important;
-    padding: 0 8px 10px !important;
-  }
-
-  .cap-alert-item {
-    padding: 10px 8px !important;
-    gap: 8px !important;
-  }
-
-  .cap-alert-item-badge {
-    width: 28px !important;
-    height: 28px !important;
-    font-size: 0.6rem !important;
-  }
-
-  .cap-alert-item-title {
-    font-size: 0.8rem !important;
-  }
-
-  .cap-alert-item-meta {
-    font-size: 0.6rem !important;
-  }
-}
-
 

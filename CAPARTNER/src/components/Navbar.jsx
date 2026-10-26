@@ -135,12 +135,13 @@ export default function Navbar({
         className="cap-header"
         style={{
           width: '100%',
-          backgroundColor: '#033015',
+          background: 'linear-gradient(180deg, rgba(3, 23, 14, 0.94) 0%, rgba(4, 30, 18, 0.96) 100%)',
           borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
           padding: isMobile ? 'max(12px, env(safe-area-inset-top)) 12px 10px' : '12px 24px',
           boxSizing: 'border-box',
           position: 'relative',
           zIndex: 40,
+          boxShadow: '0 12px 28px rgba(6, 18, 12, 0.12)',
         }}
       >
         <div
@@ -190,7 +191,7 @@ export default function Navbar({
           </div>
 
           {!isMobile && (
-            <nav className="cap-nav" style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
+            <nav className="cap-nav" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               {navItems.map((item) => {
                 const isActive = activeTab === item.name;
                 return (
@@ -201,17 +202,21 @@ export default function Navbar({
                     style={{
                       display: 'flex',
                       alignItems: 'center',
+                      justifyContent: 'center',
                       gap: '8px',
-                      backgroundColor: 'transparent',
-                      border: 'none',
+                      background: isActive ? 'rgba(14, 168, 91, 0.14)' : 'rgba(255,255,255,0.02)',
+                      border: isActive ? '1px solid rgba(78, 214, 125, 0.3)' : '1px solid rgba(255,255,255,0.04)',
+                      borderRadius: '12px',
                       cursor: 'pointer',
-                      color: isActive ? '#00FF38' : '#8ba29a',
-                      fontWeight: isActive ? 800 : 500,
-                      fontSize: '0.95rem',
-                      padding: '6px 0',
+                      color: isActive ? '#9ef7ba' : '#b5c7bc',
+                      fontWeight: isActive ? 800 : 600,
+                      fontSize: '0.9rem',
+                      padding: '10px 14px',
+                      minHeight: '42px',
+                      transition: 'all 0.2s ease',
                     }}
                   >
-                    <Icon icon={item.icon} width="20" height="20" color={isActive ? '#00FF38' : '#8ba29a'} />
+                    <Icon icon={item.icon} width="18" height="18" color={isActive ? '#9ef7ba' : '#b5c7bc'} />
                     <span>{item.name}</span>
                   </button>
                 );
@@ -236,14 +241,15 @@ export default function Navbar({
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
-                  backgroundColor: '#382317',
-                  color: '#ff4d4d',
+                  background: 'linear-gradient(135deg, #3f1b16 0%, #5a2822 100%)',
+                  color: '#ffd0cb',
                   borderRadius: '12px',
-                  padding: '8px 16px',
-                  border: 'none',
+                  padding: '9px 16px',
+                  border: '1px solid rgba(255, 196, 188, 0.12)',
                   fontWeight: 800,
-                  fontSize: '0.85rem',
+                  fontSize: '0.8rem',
                   cursor: 'pointer',
+                  boxShadow: '0 10px 18px rgba(96, 31, 20, 0.18)',
                 }}
               >
                 <Icon icon="lucide:siren" width="18" height="18" color="#ff4d4d" />

@@ -129,7 +129,7 @@ export default function ActivityPage({ onTabChange, onLogout }) {
   return (
     <div
       style={{
-        backgroundColor: '#f8fafc',
+        background: 'transparent',
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',

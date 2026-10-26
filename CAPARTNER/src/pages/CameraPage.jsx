@@ -123,7 +123,7 @@ export default function CameraPage({ onTabChange, onLogout }) {
   return (
     <div
       style={{
-        backgroundColor: '#ffffff',
+        background: 'transparent',
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',

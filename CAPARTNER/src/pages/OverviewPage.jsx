@@ -332,13 +332,13 @@ export default function OverviewPage({ onTabChange, onLogout }) {
   return (
     <div 
       style={{
-        backgroundColor: '#ffffff',
+        background: 'transparent',
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
         fontFamily: "'Inter', sans-serif",
       }}
-      className="min-h-screen flex flex-col bg-white"
+      className="min-h-screen flex flex-col"
     >
       {/* INJECTED AUTO-HIDING SCROLLBAR STYLES */}
       <style>{`
