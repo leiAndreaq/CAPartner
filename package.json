@@ -1,9 +1,4 @@
 {
-<<<<<<< HEAD
-  "dependencies": {
-    "@tailwindcss/vite": "^4.3.3",
-    "tailwindcss": "^4.3.3"
-=======
   "name": "capartner-admin",
   "private": true,
   "version": "0.0.0",
@@ -35,6 +30,5 @@
     "postcss": "^8.5.31",
     "tailwindcss": "^4.3.3",
     "vite": "^8.3.4"
->>>>>>> 951de0c0a9665d78bb29b538221344d6da46dfb7
   }
 }

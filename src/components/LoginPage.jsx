@@ -1,16 +1,24 @@
-import { useState } from 'react';
-import { Activity, MapPin, Shield, Eye, EyeOff, User, Lock, ChevronRight, ArrowLeft, Check } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Activity, MapPin, Shield, Eye, EyeOff, User, Lock, ChevronRight, ArrowLeft, Check, Smartphone, Sparkles, Mail } from 'lucide-react';
 import capLogo from '../assets/CAP LOGO.png';
 import mapBg from '../assets/location_pins.png';
 
 export default function LoginPage({ onLoginSuccess }) {
   const [showPassword, setShowPassword] = useState(false);
-  const [currentView, setCurrentView] = useState('login'); 
+  const [currentView, setCurrentView] = useState('login'); // 'login' | 'forgot' | 'success' | 'otp'
   const [recoveryEmail, setRecoveryEmail] = useState('');
+  
+  // State para sa verification method (email o phone)
+  const [verifyMethod, setVerifyMethod] = useState('email');
+  
+  // States para sa 6-digit OTP at custom toast message
+  const [otpValues, setOtpValues] = useState(['', '', '', '', '', '']);
+  const [toastMessage, setToastMessage] = useState('');
+  const inputRefs = useRef([]);
 
   const handleLoginSubmit = (e) => {
     e.preventDefault();
-    onLoginSuccess();
+    setCurrentView('otp');
   };
 
   const handleRecoverySubmit = (e) => {
@@ -18,10 +26,40 @@ export default function LoginPage({ onLoginSuccess }) {
     setCurrentView('success');
   };
 
+  const handleOtpChange = (index, value) => {
+    if (isNaN(value)) return;
+    const newValues = [...otpValues];
+    newValues[index] = value;
+    setOtpValues(newValues);
+
+    if (value && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !otpValues[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpVerify = (e) => {
+    e.preventDefault();
+    onLoginSuccess();
+  };
+
+  const triggerResendToast = () => {
+    // Dynamic toast message depende sa pinili
+    setToastMessage(`New code sent to your ${verifyMethod === 'email' ? 'email' : 'phone number'}!`);
+    setTimeout(() => {
+      setToastMessage('');
+    }, 4000);
+  };
+
   return (
     <div className="h-screen w-full flex font-sans text-gray-800 overflow-hidden bg-white">
       
-      {/* Left Panel */}
+      {/* Left Panel - Green Branding Panel */}
       <div className="hidden lg:flex w-1/2 bg-[#082B1A] text-white flex-col justify-between p-10 xl:p-16 relative h-full overflow-hidden">
         <div 
           className="absolute inset-0 bg-cover bg-right bg-no-repeat opacity-50 grayscale sepia hue-rotate-90 saturate-[3] contrast-125"
@@ -77,9 +115,27 @@ export default function LoginPage({ onLoginSuccess }) {
         </div>
       </div>
 
-      {/* Right Panel */}
-      <div className="w-full lg:w-1/2 h-full flex items-center justify-center p-8 sm:p-12 relative overflow-y-auto">
+      {/* Right Panel - Form / OTP Section */}
+      <div className="w-full lg:w-1/2 h-full flex items-center justify-center p-8 sm:p-12 relative overflow-hidden bg-white">
+        
+        {/* Modern Floating Toast Notification */}
+        {toastMessage && (
+          <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-[360px] bg-[#0A3320] text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-emerald-500/30 animate-in slide-in-from-top-4 duration-300">
+            <div className="w-6 h-6 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+              <Sparkles className="w-3.5 h-3.5" />
+            </div>
+            <p className="text-xs font-medium tracking-wide">{toastMessage}</p>
+          </div>
+        )}
+
         <div className="max-w-[400px] w-full relative z-10 transition-all duration-300">
+          <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
+            <img src={capLogo} alt="CAPartner Logo" className="w-12 h-auto" />
+            <div className="text-left">
+              <h1 className="text-xl font-bold tracking-tight text-[#0A3320]">CAPartner</h1>
+              <p className="text-[8px] font-semibold tracking-[0.18em] text-gray-500 uppercase">Secure Access</p>
+            </div>
+          </div>
           
           {currentView === 'login' && (
             <div className="animate-in fade-in slide-in-from-right-4 duration-500">
@@ -103,7 +159,7 @@ export default function LoginPage({ onLoginSuccess }) {
                   <label className="text-xs font-bold text-gray-900" htmlFor="username">Username</label>
                   <div className="relative">
                     <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input id="username" type="text" placeholder="Enter your username" className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-[#0A3320] focus:ring-1 focus:ring-[#0A3320] outline-none transition-colors text-sm" />
+                    <input id="username" type="text" placeholder="Enter your username" defaultValue="Alex Mendoza" className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-[#0A3320] focus:ring-1 focus:ring-[#0A3320] outline-none transition-colors text-sm" />
                   </div>
                 </div>
 
@@ -111,7 +167,7 @@ export default function LoginPage({ onLoginSuccess }) {
                   <label className="text-xs font-bold text-gray-900" htmlFor="password">Password</label>
                   <div className="relative">
                     <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input id="password" type={showPassword ? 'text' : 'password'} placeholder="Enter your password" className="w-full pl-10 pr-12 py-3 rounded-xl border border-gray-200 focus:border-[#0A3320] focus:ring-1 focus:ring-[#0A3320] outline-none transition-colors text-sm" />
+                    <input id="password" type={showPassword ? 'text' : 'password'} placeholder="Enter your password" defaultValue="••••••••" className="w-full pl-10 pr-12 py-3 rounded-xl border border-gray-200 focus:border-[#0A3320] focus:ring-1 focus:ring-[#0A3320] outline-none transition-colors text-sm" />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -132,6 +188,91 @@ export default function LoginPage({ onLoginSuccess }) {
                   Sign In
                   <ChevronRight className="w-4 h-4" />
                 </button>
+              </form>
+            </div>
+          )}
+
+          {/* --- TWO-FACTOR VERIFICATION (OTP) VIEW --- */}
+          {currentView === 'otp' && (
+            <div className="animate-in fade-in slide-in-from-left-4 duration-500">
+              <button onClick={() => setCurrentView('login')} className="flex items-center gap-1.5 text-xs font-bold text-[#0A3320] hover:underline mb-6">
+                <ArrowLeft className="w-3.5 h-3.5" /> Back to sign in
+              </button>
+
+              {/* Dynamic Icon Header depende sa napiling method */}
+              <div className="w-14 h-14 bg-[#E8F2EC] rounded-2xl flex items-center justify-center mb-6 text-[#0A3320] transition-colors">
+                {verifyMethod === 'email' ? <Mail className="w-7 h-7" /> : <Smartphone className="w-7 h-7" />}
+              </div>
+
+              <h2 className="text-3xl font-bold text-gray-900 mb-4 tracking-tight">
+                Verification
+              </h2>
+
+              {/* Toggle Switch para sa Email / Phone */}
+              <div className="flex p-1 mb-5 bg-gray-100/80 rounded-xl border border-gray-200/50">
+                <button
+                  type="button"
+                  onClick={() => setVerifyMethod('email')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold rounded-lg transition-all duration-200 ${
+                    verifyMethod === 'email' 
+                      ? 'bg-white text-[#0A3320] shadow-sm border border-gray-200/50' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Mail className="w-3.5 h-3.5" /> Via Email
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVerifyMethod('phone')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold rounded-lg transition-all duration-200 ${
+                    verifyMethod === 'phone' 
+                      ? 'bg-white text-[#0A3320] shadow-sm border border-gray-200/50' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Smartphone className="w-3.5 h-3.5" /> Via SMS
+                </button>
+              </div>
+
+              {/* Dynamic Description Text */}
+              <p className="text-gray-500 text-xs mb-8 leading-relaxed min-h-[40px]">
+                {verifyMethod === 'email' ? (
+                  <>Enter the 6-digit code sent to your registered email address (<span className="font-semibold text-gray-700">al*****@gmail.com</span>). The code expires in 5 minutes.</>
+                ) : (
+                  <>Enter the 6-digit code sent to your registered phone number (<span className="font-semibold text-gray-700">+63 9** *** ****</span>). The code expires in 5 minutes.</>
+                )}
+              </p>
+
+              <form onSubmit={handleOtpVerify} className="space-y-6">
+                {/* 6 Digit Inputs - Mobile Responsiveness Maintained */}
+                <div className="flex justify-center sm:justify-between gap-1.5 sm:gap-2">
+                  {otpValues.map((digit, index) => (
+                    <input
+                      key={index}
+                      ref={(el) => (inputRefs.current[index] = el)}
+                      type="text"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleOtpChange(index, e.target.value)}
+                      onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                      className="w-10 sm:w-12 h-12 sm:h-14 text-center text-lg sm:text-xl font-bold border-2 border-gray-200 rounded-xl focus:border-[#0A3320] focus:ring-2 focus:ring-[#0A3320]/20 outline-none transition-all text-gray-900 bg-gray-50/50 focus:bg-white shadow-sm"
+                    />
+                  ))}
+                </div>
+
+                <button 
+                  type="submit" 
+                  className="w-full bg-[#0A3320] hover:bg-[#061E12] text-white font-medium py-3.5 rounded-xl transition-colors shadow-lg shadow-[#0A3320]/20"
+                >
+                  Verify Code
+                </button>
+
+                <div className="text-xs text-gray-500 text-center pt-1">
+                  Didn't receive the code?{' '}
+                  <button type="button" onClick={triggerResendToast} className="font-bold text-[#0A3320] hover:underline">
+                    Resend OTP
+                  </button>
+                </div>
               </form>
             </div>
           )}
@@ -187,6 +328,7 @@ export default function LoginPage({ onLoginSuccess }) {
 
         </div>
       </div>
+
     </div>
   );
 }

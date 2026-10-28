@@ -1,10 +1,31 @@
 import { useState } from 'react';
-// Clock has been added to the imports below!
-import { Maximize, ChevronRight, Play, X, VideoOff, Camera as CameraIcon, Clock } from 'lucide-react';
+import { Maximize, ChevronRight, Play, X, VideoOff, Camera as CameraIcon, Clock, Volume2, VolumeX, Pause, CheckCircle } from 'lucide-react';
 
 export default function Camera() {
   const [showExportModal, setShowExportModal] = useState(false);
-  const [selectedClips, setSelectedClips] = useState([1]); // Default checked item
+  const [selectedClips, setSelectedClips] = useState([1]);
+  const [selectedCamera, setSelectedCamera] = useState(null); // Para sa Full-Screen Live View
+  const [selectedClip, setSelectedClip] = useState(null);     // Para sa Play Clip Modal
+  const [toastMessage, setToastMessage] = useState(null);     // Modern custom toast state
+
+  // States para sa Full-screen interactive controls
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
+
+  // Filters state
+  const [filters, setFilters] = useState({ date: '', camera: 'All cameras' });
+  const [appliedFilters, setAppliedFilters] = useState({ date: '', camera: 'All cameras' });
+
+  const showToast = (message) => {
+    setToastMessage(message);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const cameras = [
+    { id: 1, name: 'Camera 1', code: 'CAM-001', status: 'Online', loc: 'North Transport Terminal', lastConn: 'Today, 10:47 AM' },
+    { id: 2, name: 'Camera 2', code: 'CAM-002', status: 'Online', loc: 'Central Public Market', lastConn: 'Today, 10:46 AM' },
+    { id: 3, name: 'Camera 3', code: 'CAM-003', status: 'Offline', loc: 'South Highway Junction', lastConn: 'Today, 9:56 AM' },
+  ];
 
   const clips = [
     { id: 1, cam: 'Camera 1', date: '2025-06-16', time: '10:30', duration: '12:45', loc: 'North Transport Terminal' },
@@ -20,124 +41,120 @@ export default function Camera() {
     );
   };
 
+  const visibleClips = clips.filter((clip) => {
+    const matchesCamera = appliedFilters.camera === 'All cameras' || clip.cam === appliedFilters.camera;
+    const matchesDate = !appliedFilters.date || clip.date === appliedFilters.date;
+    return matchesCamera && matchesDate;
+  });
+
+  const handleApplyFilters = () => {
+    setAppliedFilters(filters);
+  };
+
+  const handleClearFilters = () => {
+    const reset = { date: '', camera: 'All cameras' };
+    setFilters(reset);
+    setAppliedFilters(reset);
+  };
+
   return (
-    <div className="p-8 h-full overflow-y-auto bg-[#F8FAF9]">
+    <div className="p-4 sm:p-6 lg:p-8 h-full overflow-y-auto bg-[#F8FAF9] relative">
       
       {/* Top Header */}
       <div className="mb-8">
         <p className="text-[10px] font-bold tracking-[0.15em] text-[#0A3320] uppercase mb-2">Site coverage</p>
-        <h2 className="text-3xl font-bold text-gray-900 mb-1">Camera Monitoring</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">Camera Monitoring</h2>
         <p className="text-sm text-gray-500">CCTV previews and recorded clip management for all deployment posts.</p>
       </div>
 
-      {/* Live Camera Feeds */}
-      <div className="grid grid-cols-3 gap-6 mb-10">
-        
-        {/* Camera 1 */}
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm flex flex-col">
-          <div className="h-48 bg-[#1A221F] relative flex items-center justify-center border-b border-gray-200 overflow-hidden">
-            <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 11px)' }}></div>
-            <div className="absolute inset-0 opacity-10" style={{ transform: 'perspective(500px) rotateX(60deg)', backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 40px, white 40px, white 42px)' }}></div>
-            <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded text-[9px] font-bold text-white tracking-wider">LIVE · CAM-001</div>
-            <button className="absolute bottom-4 right-4 bg-black/60 hover:bg-black/80 backdrop-blur-sm px-3 py-1.5 rounded-lg text-[10px] font-bold text-white tracking-wide flex items-center gap-1.5 transition-colors cursor-pointer">
-              <Maximize className="w-3 h-3" /> Full screen
-            </button>
-          </div>
-          <div className="p-5 flex flex-col flex-1">
-            <div className="flex justify-between items-start mb-2">
-              <div>
-                <p className="text-[9px] font-bold text-gray-400 tracking-wider mb-0.5">CAM-001</p>
-                <h3 className="text-lg font-bold text-gray-900">Camera 1</h3>
-              </div>
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Online
-              </span>
-            </div>
-            <div className="space-y-1 mb-5">
-              <p className="text-xs text-gray-500 flex items-center gap-1.5"><CameraIcon className="w-3.5 h-3.5 text-gray-400"/> North Transport Terminal</p>
-              <p className="text-xs text-gray-500 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-gray-400"/> Last connection: Today, 10:47 AM</p>
-            </div>
-            <button className="mt-auto w-full py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors flex justify-center items-center gap-1 cursor-pointer">
-              View recordings <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
+      {/* Live Camera Feeds Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-10">
+        {cameras.map((cam) => {
+          const isOnline = cam.status === 'Online';
 
-        {/* Camera 2 */}
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm flex flex-col">
-          <div className="h-48 bg-[#1A221F] relative flex items-center justify-center border-b border-gray-200 overflow-hidden">
-            <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 11px)' }}></div>
-            <div className="absolute inset-0 opacity-10" style={{ transform: 'perspective(500px) rotateX(60deg)', backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 40px, white 40px, white 42px)' }}></div>
-            <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded text-[9px] font-bold text-white tracking-wider">LIVE · CAM-002</div>
-            <button className="absolute bottom-4 right-4 bg-black/60 hover:bg-black/80 backdrop-blur-sm px-3 py-1.5 rounded-lg text-[10px] font-bold text-white tracking-wide flex items-center gap-1.5 transition-colors cursor-pointer">
-              <Maximize className="w-3 h-3" /> Full screen
-            </button>
-          </div>
-          <div className="p-5 flex flex-col flex-1">
-            <div className="flex justify-between items-start mb-2">
-              <div>
-                <p className="text-[9px] font-bold text-gray-400 tracking-wider mb-0.5">CAM-002</p>
-                <h3 className="text-lg font-bold text-gray-900">Camera 2</h3>
+          return (
+            <div 
+              key={cam.id} 
+              className={`bg-white rounded-2xl border overflow-hidden shadow-sm flex flex-col transition-all ${
+                !isOnline ? 'border-red-200 bg-red-50/20' : 'border-gray-200 hover:shadow-md'
+              }`}
+            >
+              {/* Video Screen Area */}
+              <div className={`h-48 relative flex items-center justify-center border-b border-gray-200 overflow-hidden ${
+                isOnline ? 'bg-[#1A221F]' : 'bg-[#111]'
+              }`}>
+                {isOnline ? (
+                  <>
+                    <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 11px)' }}></div>
+                    <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded text-[9px] font-bold text-white tracking-wider">LIVE · {cam.code}</div>
+                    
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCamera(cam)}
+                      className="absolute bottom-4 right-4 bg-black/60 hover:bg-black/80 backdrop-blur-sm px-3 py-1.5 rounded-lg text-[10px] font-bold text-white tracking-wide flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <Maximize className="w-3 h-3" /> Full screen
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded text-[9px] font-bold text-gray-500 tracking-wider">LIVE · {cam.code}</div>
+                    <div className="text-center p-4">
+                      <VideoOff className="w-8 h-8 text-red-500 mx-auto mb-2" />
+                      <p className="text-sm font-bold text-red-500 tracking-widest uppercase mb-0.5">Camera Offline</p>
+                      <p className="text-[10px] text-gray-400">Stream unavailable</p>
+                    </div>
+                  </>
+                )}
               </div>
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Online
-              </span>
-            </div>
-            <div className="space-y-1 mb-5">
-              <p className="text-xs text-gray-500 flex items-center gap-1.5"><CameraIcon className="w-3.5 h-3.5 text-gray-400"/> Central Public Market</p>
-              <p className="text-xs text-gray-500 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-gray-400"/> Last connection: Today, 10:46 AM</p>
-            </div>
-            <button className="mt-auto w-full py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors flex justify-center items-center gap-1 cursor-pointer">
-              View recordings <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
 
-        {/* Camera 3 (Offline) */}
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm flex flex-col">
-          <div className="h-48 bg-[#111] relative flex flex-col items-center justify-center border-b border-gray-200 overflow-hidden">
-            <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded text-[9px] font-bold text-gray-500 tracking-wider">LIVE · CAM-003</div>
-            
-            <VideoOff className="w-8 h-8 text-red-500 mb-2" />
-            <p className="text-sm font-bold text-red-500 tracking-widest uppercase mb-1">Camera Offline</p>
-            <p className="text-[10px] text-gray-500">Stream unavailable</p>
-            
-            <button className="absolute bottom-4 right-4 bg-black/60 hover:bg-black/80 backdrop-blur-sm px-3 py-1.5 rounded-lg text-[10px] font-bold text-gray-400 tracking-wide flex items-center gap-1.5 transition-colors cursor-pointer">
-              <Maximize className="w-3 h-3" /> Full screen
-            </button>
-          </div>
-          <div className="p-5 flex flex-col flex-1">
-            <div className="flex justify-between items-start mb-2">
-              <div>
-                <p className="text-[9px] font-bold text-gray-400 tracking-wider mb-0.5">CAM-003</p>
-                <h3 className="text-lg font-bold text-gray-900">Camera 3</h3>
+              {/* Card Details */}
+              <div className="p-5 flex flex-col flex-1">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <p className="text-[9px] font-bold text-gray-400 tracking-wider mb-0.5">{cam.code}</p>
+                    <h3 className="text-lg font-bold text-gray-900">{cam.name}</h3>
+                  </div>
+                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 ${
+                    isOnline ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'
+                  }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-red-500'}`}></span> {cam.status}
+                  </span>
+                </div>
+
+                <div className="space-y-1 mb-5">
+                  <p className="text-xs text-gray-500 flex items-center gap-1.5"><CameraIcon className="w-3.5 h-3.5 text-gray-400"/> {cam.loc}</p>
+                  <p className="text-xs text-gray-500 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-gray-400"/> Last connection: {cam.lastConn}</p>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={!isOnline}
+                  onClick={() => setSelectedCamera(cam)}
+                  className={`mt-auto w-full py-2.5 border rounded-xl text-xs font-bold transition-colors flex justify-center items-center gap-1 ${
+                    isOnline 
+                      ? 'border-gray-200 text-gray-700 hover:bg-gray-50 cursor-pointer' 
+                      : 'border-gray-100 text-gray-300 bg-gray-50 cursor-not-allowed'
+                  }`}
+                >
+                  View full screen & feed <ChevronRight className="w-3.5 h-3.5" />
+                </button>
               </div>
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-50 text-red-600 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span> Offline
-              </span>
             </div>
-            <div className="space-y-1 mb-5">
-              <p className="text-xs text-gray-500 flex items-center gap-1.5"><CameraIcon className="w-3.5 h-3.5 text-gray-400"/> South Highway Junction</p>
-              <p className="text-xs text-gray-500 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-gray-400"/> Last connection: Today, 9:56 AM</p>
-            </div>
-            <button className="mt-auto w-full py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors flex justify-center items-center gap-1 cursor-pointer">
-              View recordings <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-
+          );
+        })}
       </div>
 
       {/* Recorded Clips Section */}
       <div className="bg-white rounded-3xl border border-gray-200/80 shadow-sm overflow-hidden mb-8">
         
-        {/* Header */}
         <div className="p-6 border-b border-gray-100 flex items-start justify-between">
           <div>
             <h3 className="text-xl font-bold text-gray-900 mb-1">Recorded clips</h3>
             <p className="text-xs text-gray-500">Recordings retained for deployment posts.</p>
           </div>
           <button 
+            type="button"
             onClick={() => setShowExportModal(true)}
             className="bg-[#0A3320] hover:bg-[#061E12] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-colors shadow-sm cursor-pointer"
           >
@@ -146,24 +163,41 @@ export default function Camera() {
         </div>
 
         {/* Filters */}
-        <div className="p-6 flex items-end gap-4 bg-gray-50/50 border-b border-gray-100">
-          <div className="w-48">
+        <div className="p-6 grid grid-cols-1 sm:grid-cols-2 xl:flex xl:flex-wrap gap-4 bg-gray-50/50 border-b border-gray-100">
+          <div className="sm:w-48 xl:w-48">
             <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Date</label>
-            <input type="date" className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-700 outline-none focus:border-[#0A3320] focus:ring-1 focus:ring-[#0A3320]" />
+            <input
+              type="date"
+              value={filters.date}
+              onChange={(e) => setFilters(prev => ({ ...prev, date: e.target.value }))}
+              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-700 outline-none focus:border-[#0A3320] focus:ring-1 focus:ring-[#0A3320]"
+            />
           </div>
-          <div className="w-56">
+          <div className="sm:w-56 xl:w-56">
             <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Camera</label>
-            <select className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-700 outline-none focus:border-[#0A3320] focus:ring-1 focus:ring-[#0A3320] bg-white cursor-pointer">
+            <select
+              value={filters.camera}
+              onChange={(e) => setFilters(prev => ({ ...prev, camera: e.target.value }))}
+              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-700 outline-none focus:border-[#0A3320] focus:ring-1 focus:ring-[#0A3320] bg-white cursor-pointer"
+            >
               <option>All cameras</option>
               <option>Camera 1</option>
               <option>Camera 2</option>
               <option>Camera 3</option>
             </select>
           </div>
-          <button className="bg-[#0A3320] hover:bg-[#061E12] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-colors shadow-sm cursor-pointer">
+          <button
+            type="button"
+            onClick={handleApplyFilters}
+            className="bg-[#0A3320] hover:bg-[#061E12] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-colors shadow-sm cursor-pointer w-full sm:w-auto"
+          >
             Apply filters
           </button>
-          <button className="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-5 py-2.5 rounded-xl text-xs font-bold transition-colors cursor-pointer">
+          <button
+            type="button"
+            onClick={handleClearFilters}
+            className="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-5 py-2.5 rounded-xl text-xs font-bold transition-colors cursor-pointer w-full sm:w-auto"
+          >
             Clear filters
           </button>
         </div>
@@ -183,7 +217,7 @@ export default function Camera() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-xs">
-              {clips.map((clip) => (
+              {visibleClips.map((clip) => (
                 <tr key={clip.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="py-4 px-6 font-bold text-gray-900">{clip.cam}</td>
                   <td className="py-4 px-6 font-medium text-gray-600">{clip.date}</td>
@@ -192,7 +226,11 @@ export default function Camera() {
                   <td className="py-4 px-6 font-medium text-gray-600">{clip.loc}</td>
                   <td className="py-4 px-6">
                     <div className="flex justify-center">
-                      <button className="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-[11px] transition-colors flex items-center gap-1.5 cursor-pointer">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedClip(clip)}
+                        className="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-[11px] transition-colors flex items-center gap-1.5 cursor-pointer"
+                      >
                         <Play className="w-3 h-3 fill-emerald-700" /> Play clip
                       </button>
                     </div>
@@ -200,6 +238,7 @@ export default function Camera() {
                   <td className="py-4 px-6">
                     <div className="flex justify-center">
                       <button 
+                        type="button"
                         onClick={() => setShowExportModal(true)}
                         className="px-4 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 font-bold text-[11px] transition-colors cursor-pointer"
                       >
@@ -214,17 +253,149 @@ export default function Camera() {
         </div>
       </div>
 
+      {/* ----------------- FULL-SCREEN LIVE FEED MODAL ----------------- */}
+      {selectedCamera && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 sm:p-8 animate-in fade-in duration-200">
+          <div className="bg-[#111614] w-full max-w-5xl rounded-3xl shadow-2xl border border-emerald-900/50 overflow-hidden flex flex-col text-white animate-in zoom-in-95 duration-200">
+            
+            <div className="bg-[#0A3320] px-6 py-4 flex items-center justify-between border-b border-emerald-900/60">
+              <div className="flex items-center gap-3">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <div>
+                  <h3 className="text-base font-bold tracking-tight">{selectedCamera.name} — Full Screen Live Feed</h3>
+                  <p className="text-[10px] text-emerald-200/70">{selectedCamera.loc} ({selectedCamera.code})</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedCamera(null)}
+                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="relative h-[60dvh] bg-[#080C0A] flex items-center justify-center overflow-hidden border-b border-emerald-900/40">
+              <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 15px, rgba(255,255,255,0.05) 15px, rgba(255,255,255,0.05) 16px)' }}></div>
+              
+              <div className="text-center z-10 p-6">
+                <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-4 border border-emerald-500/30">
+                  <CameraIcon className="w-8 h-8" />
+                </div>
+                <p className="text-lg font-bold text-white mb-1">Live Feed Active ({selectedCamera.code})</p>
+                <p className="text-xs text-emerald-200/60">Backend stream socket ready for HLS / WebRTC connection.</p>
+              </div>
+
+              <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl text-[10px] font-extrabold tracking-widest text-emerald-400 border border-emerald-500/20">
+                🔴 HD 1080P · 60FPS
+              </div>
+            </div>
+
+            <div className="p-4 sm:p-5 bg-[#0A3320]/60 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsPlaying(!isPlaying)}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer shadow-sm"
+                >
+                  {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                  {isPlaying ? 'Pause Stream' : 'Resume Stream'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsMuted(!isMuted)}
+                  className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+                  title={isMuted ? "Unmute Audio" : "Mute Audio"}
+                >
+                  {isMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
+                </button>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => showToast(`Snapshot captured for ${selectedCamera.name}`)}
+                  className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-colors cursor-pointer border border-white/10"
+                >
+                  Capture Snapshot
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedCamera(null)}
+                  className="px-5 py-2 rounded-xl bg-white text-[#0A3320] hover:bg-emerald-50 text-xs font-bold transition-colors cursor-pointer shadow-sm"
+                >
+                  Close Full Screen
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ----------------- PLAY CLIP PREVIEW MODAL ----------------- */}
+      {selectedClip && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-lg shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900">Playback Preview — {selectedClip.cam}</h3>
+              <button
+                type="button"
+                onClick={() => setSelectedClip(null)}
+                className="rounded-full bg-gray-100 p-2 text-gray-500 hover:bg-gray-200 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="rounded-2xl bg-[#1A221F] p-5 text-white border border-gray-200 mb-5">
+              <div className="mb-3 flex items-center justify-between text-[10px] uppercase tracking-[0.15em] text-gray-300">
+                <span>{selectedClip.cam}</span>
+                <span>{selectedClip.date} · {selectedClip.time}</span>
+              </div>
+              <div className="h-48 rounded-xl border border-white/10 bg-gradient-to-br from-slate-800 via-slate-700 to-emerald-900/80 flex items-center justify-center">
+                <div className="text-center">
+                  <Play className="mx-auto mb-2 h-10 w-10 text-emerald-400" />
+                  <p className="text-xs font-bold text-white">Playing Recorded Segment ({selectedClip.duration})</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowExportModal(true);
+                  setSelectedClip(null);
+                }}
+                className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 font-bold text-xs transition-colors cursor-pointer"
+              >
+                Export this clip
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedClip(null)}
+                className="px-5 py-2.5 rounded-xl bg-[#0A3320] text-white font-bold text-xs hover:bg-[#061E12] transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ----------------- EXPORT MODAL ----------------- */}
       {showExportModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl p-8 w-full max-w-lg shadow-xl animate-in zoom-in-95 duration-200 m-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 w-full max-w-lg shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-200">
             
             <div className="text-center mb-6">
               <h3 className="text-2xl font-bold text-gray-900 mb-1">Export recorded clips</h3>
-              <p className="text-sm text-gray-500">Select the clips to include in the export.</p>
+              <p className="text-sm text-gray-500">Select the clips to include in the export package.</p>
             </div>
 
-            {/* Modal Filters matching new rules (1 Date, 1 Camera) */}
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div>
                 <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Camera</label>
@@ -241,8 +412,7 @@ export default function Camera() {
               </div>
             </div>
 
-            {/* Checkbox List */}
-            <div className="border border-gray-200 rounded-xl overflow-hidden mb-8">
+            <div className="border border-gray-200 rounded-xl overflow-hidden mb-8 max-h-52 overflow-y-auto">
               {clips.map((clip, idx) => (
                 <label key={clip.id} className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-gray-50 transition-colors ${idx !== clips.length - 1 ? 'border-b border-gray-100' : ''}`}>
                   <input 
@@ -252,28 +422,44 @@ export default function Camera() {
                     className="w-4 h-4 rounded border-gray-300 text-[#0A3320] focus:ring-[#0A3320] accent-[#0A3320] cursor-pointer"
                   />
                   <span className="text-xs text-gray-700 font-medium">
-                    {clip.cam} · {clip.date} · {clip.time}
+                    {clip.cam} · {clip.date} · {clip.time} ({clip.duration})
                   </span>
                 </label>
               ))}
             </div>
             
-            {/* Modal Actions */}
             <div className="flex items-center gap-3">
               <button 
+                type="button"
                 onClick={() => setShowExportModal(false)}
-                className="flex-1 py-3 rounded-xl border border-gray-200 font-bold text-sm bg-white text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+                className="flex-1 py-3 rounded-xl border border-gray-200 font-bold text-xs bg-white text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button 
-                onClick={() => setShowExportModal(false)}
-                className="flex-1 py-3 rounded-xl font-bold text-sm bg-[#0A3320] text-white hover:bg-[#061E12] transition-colors cursor-pointer shadow-sm"
+                type="button"
+                onClick={() => {
+                  setShowExportModal(false);
+                  showToast(`Successfully exported ${selectedClips.length} recorded clips.`);
+                }}
+                className="flex-1 py-3 rounded-xl font-bold text-xs bg-[#0A3320] text-white hover:bg-[#061E12] transition-colors cursor-pointer shadow-sm"
               >
-                Export selected
+                Export selected ({selectedClips.length})
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* MODERN TOAST NOTIFICATION */}
+      {toastMessage && (
+        <div className="fixed bottom-8 right-8 z-[120] animate-in slide-in-from-bottom-5 fade-in duration-300">
+          <div className="bg-[#0A3320] text-white px-5 py-3.5 rounded-xl shadow-2xl flex items-center gap-3 border border-emerald-500/30">
+            <div className="bg-[#115E3E] rounded-full p-1 text-emerald-400">
+              <CheckCircle className="w-4 h-4" />
+            </div>
+            <p className="text-xs font-bold tracking-wide">{toastMessage}</p>
           </div>
         </div>
       )}

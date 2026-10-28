@@ -6,6 +6,7 @@ export default function ActivityLog() {
   const [eventTypeFilter, setEventTypeFilter] = useState('All events');
   const [severityFilter, setSeverityFilter] = useState('All severities');
   const [personnelFilter, setPersonnelFilter] = useState('All personnel');
+  const [page, setPage] = useState(1);
 
   const logs = [
     { id: 1, time: 'Today, 10:46 AM', type: 'SOS signal', desc: 'Manual SOS warning generated', target: 'Miguel Reyes · ENF-2401', severity: 'CRITICAL', status: 'Open' },
@@ -22,17 +23,52 @@ export default function ActivityLog() {
     INFO: 'bg-sky-50 text-sky-600 border border-sky-100',
   };
 
+  const filteredLogs = logs.filter((log) => {
+    const matchesSearch = !searchQuery || [log.type, log.desc, log.target].join(' ').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesEvent = eventTypeFilter === 'All events' || log.type === eventTypeFilter;
+    const matchesSeverity = severityFilter === 'All severities' || log.severity === severityFilter;
+    const matchesPersonnel = personnelFilter === 'All personnel' || log.target.includes(personnelFilter);
+    return matchesSearch && matchesEvent && matchesSeverity && matchesPersonnel;
+  });
+
+  const pageSize = 4;
+  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / pageSize));
+  const paginatedLogs = filteredLogs.slice((page - 1) * pageSize, page * pageSize);
+
+  const handleExport = () => {
+    const rows = [
+      ['Date and time', 'Event type', 'Description', 'Related enforcer or device', 'Severity', 'Status'],
+      ...filteredLogs.map(log => [log.time, log.type, log.desc, log.target, log.severity, log.status]),
+    ];
+
+    const csv = rows.map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'activity-log.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handlePageChange = (nextPage) => {
+    setPage(Math.min(Math.max(nextPage, 1), totalPages));
+  };
+
   return (
-    <div className="p-8 h-full overflow-y-auto bg-[#F8FAF9]">
+    <div className="p-4 sm:p-6 lg:p-8 h-full overflow-y-auto bg-[#F8FAF9]">
       
       {/* Top Page Header */}
-      <div className="flex items-start justify-between mb-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
         <div>
           <p className="text-[10px] font-bold tracking-[0.15em] text-[#0A3320] uppercase mb-2">Historical record</p>
-          <h2 className="text-3xl font-bold text-gray-900 mb-1">Activity Log</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">Activity Log</h2>
           <p className="text-sm text-gray-500">Historical records of system events, alerts, and personnel activities.</p>
         </div>
-        <button className="bg-[#0A3320] hover:bg-[#061E12] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-colors shadow-sm cursor-pointer">
+        <button
+          onClick={handleExport}
+          className="bg-[#0A3320] hover:bg-[#061E12] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-colors shadow-sm cursor-pointer w-full sm:w-auto"
+        >
           Export Activity Log
         </button>
       </div>
@@ -52,7 +88,7 @@ export default function ActivityLog() {
       </div>
 
       {/* Filter Toolbar Card */}
-      <div className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-sm mb-6 grid grid-cols-5 gap-4">
+      <div className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-sm mb-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
         <div>
           <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Event Type</label>
           <select 
@@ -114,7 +150,7 @@ export default function ActivityLog() {
 
       {/* Main Table Card */}
       <div className="bg-white rounded-3xl border border-gray-200/80 shadow-sm overflow-hidden mb-6">
-        <div className="overflow-x-auto">
+        <div className="hidden xl:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50/70 border-b border-gray-200/80 text-[10px] font-bold tracking-wider text-gray-400 uppercase">
@@ -127,7 +163,7 @@ export default function ActivityLog() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-xs">
-              {logs.map((log) => (
+              {paginatedLogs.map((log) => (
                 <tr key={log.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="py-4 px-6 font-medium text-gray-500 whitespace-nowrap">{log.time}</td>
                   <td className="py-4 px-6 font-bold text-gray-900 whitespace-nowrap">{log.type}</td>
@@ -145,15 +181,48 @@ export default function ActivityLog() {
           </table>
         </div>
 
+        <div className="xl:hidden divide-y divide-gray-100">
+          {paginatedLogs.map((log) => (
+            <div key={log.id} className="p-4">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <span className="text-[10px] font-medium text-gray-500">{log.time}</span>
+                <span className={`inline-flex items-center rounded-md px-2 py-1 text-[9px] font-bold ${severityStyles[log.severity]}`}>
+                  {log.severity}
+                </span>
+              </div>
+
+              <div className="mb-2 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-base font-bold text-gray-900">{log.type}</p>
+                  <p className="mt-1 text-[11px] text-gray-600">{log.desc}</p>
+                </div>
+                <span className="rounded-full bg-gray-100 px-2 py-1 text-[9px] font-bold text-gray-700">
+                  {log.status}
+                </span>
+              </div>
+
+              <p className="text-[11px] text-gray-700">{log.target}</p>
+            </div>
+          ))}
+        </div>
+
         {/* Pagination Footer */}
         <div className="p-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500 bg-gray-50/30">
-          <p>Showing 6 of 10 historical records</p>
+          <p>Showing {filteredLogs.length ? (page - 1) * pageSize + 1 : 0} - {Math.min(page * pageSize, filteredLogs.length)} of {filteredLogs.length} historical records</p>
           <div className="flex items-center gap-2">
-            <button disabled className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-400 font-bold text-xs opacity-50 cursor-not-allowed">
+            <button
+              onClick={() => handlePageChange(page - 1)}
+              disabled={page === 1 || filteredLogs.length === 0}
+              className={`px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold transition-colors ${page === 1 || filteredLogs.length === 0 ? 'bg-white text-gray-400 opacity-50 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50 cursor-pointer'}`}
+            >
               Previous
             </button>
-            <span className="px-3 py-1.5 font-bold text-gray-700">1 / 2</span>
-            <button className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 font-bold text-xs cursor-pointer transition-colors">
+            <span className="px-3 py-1.5 font-bold text-gray-700">{filteredLogs.length ? page : 0} / {totalPages}</span>
+            <button
+              onClick={() => handlePageChange(page + 1)}
+              disabled={page === totalPages || filteredLogs.length === 0}
+              className={`px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-bold transition-colors ${page === totalPages || filteredLogs.length === 0 ? 'bg-white text-gray-400 opacity-50 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50 cursor-pointer'}`}
+            >
               Next
             </button>
           </div>
