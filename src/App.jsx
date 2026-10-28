@@ -186,7 +186,6 @@ function App() {
           alertBadgeCount={unacknowledgedCount > 0 ? unacknowledgedCount : null}
           onClose={() => setIsSidebarOpen(false)}
           adminProfile={adminProfile}
-          onLogout={handleLogout}
         />
       </aside>
 
