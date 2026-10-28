@@ -9,25 +9,25 @@ import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 let DefaultIcon = L.icon({ iconUrl: icon, shadowUrl: iconShadow, iconSize: [25, 41], iconAnchor: [12, 41] });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-export default function Overview() {
+export default function Overview({ onViewEnforcer }) {
   const enforcers = [
     { 
       id: 1, name: 'Miguel Reyes', badge: 'ENF-2401', status: 'Normal', post: 'North Transport Terminal', 
-      hr: '78 BPM', temp: '36.6 °C', motion: 'Moving', battery: '86%', coords: [14.6507, 120.9822], 
+      hr: '82 BPM', temp: '36.6 °C', motion: 'Moving', battery: '86%', coords: [14.6507, 120.9822], 
       color: 'emerald', locType: 'CURRENT LOCATION', address: 'Terminal Road, Brgy. San Roque', 
-      internet: true, lora: true, time: 'Updated Today, 10:45:12 AM' 
+      internet: true, lora: true, time: 'Today, 10:45:12 AM' 
     },
     { 
       id: 2, name: 'Andrea Dela Cruz', badge: 'ENF-2402', status: 'Attention', post: 'Central Public Market', 
       hr: '104 BPM', temp: '37.8 °C', motion: 'Stationary', battery: '64%', coords: [14.6488, 120.9850], 
       color: 'amber', locType: 'CURRENT LOCATION', address: 'Mabini Street, Market District', 
-      internet: true, lora: true, time: 'Updated Today, 10:43:08 AM' 
+      internet: true, lora: true, time: 'Today, 10:43:08 AM' 
     },
     { 
       id: 3, name: 'Jose Santos', badge: 'ENF-2403', status: 'Offline', post: 'South Highway Junction', 
       hr: 'No data', temp: 'No data', motion: 'No Signal', battery: '18%', coords: [14.6450, 120.9880], 
       color: 'red', locType: 'LAST KNOWN LOCATION', address: 'South Highway, Brgy. Mabuhay', 
-      internet: false, lora: false, time: 'Updated Today, 10:21:44 AM' 
+      internet: false, lora: false, time: 'Today, 10:21:44 AM' 
     }
   ];
 
@@ -147,7 +147,7 @@ export default function Overview() {
                 </div>
               </div>
 
-              {/* Card Mini-Map without attribution tag */}
+              {/* Card Mini-Map */}
               <div className="h-28 rounded-xl mb-4 relative overflow-hidden border border-gray-200/60 z-0 shadow-inner">
                 <MapContainer 
                   center={enf.coords} 
@@ -175,7 +175,12 @@ export default function Overview() {
                   <Clock className="w-3.5 h-3.5" />
                   <span className="text-[9px] font-medium">{enf.time}</span>
                 </div>
-                <button className="bg-[#0A3320] hover:bg-[#061E12] text-white py-2 px-4 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-colors">
+                
+                {/* Connection to App.jsx -> Monitoring.jsx happens here */}
+                <button 
+                  onClick={() => onViewEnforcer && onViewEnforcer(enf.id)}
+                  className="bg-[#0A3320] hover:bg-[#061E12] text-white py-2 px-4 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                >
                   View details <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -185,7 +190,7 @@ export default function Overview() {
         })}
       </div>
 
-      {/* Main Live Deployment Map without attribution tag */}
+      {/* Main Live Deployment Map */}
       <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-[500px] flex flex-col">
         <div className="flex justify-between items-center mb-4">
           <div>

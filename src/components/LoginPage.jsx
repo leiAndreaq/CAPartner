@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, MapPin, Shield, Eye, EyeOff, User, Lock, ChevronRight, ArrowLeft, Check } from 'lucide-react';
+import { Activity, MapPin, Shield, Eye, EyeOff, User, Lock, ChevronRight, ArrowLeft, Check, AlertCircle } from 'lucide-react';
 import capLogo from '../assets/CAP LOGO.png';
 import mapBg from '../assets/location_pins.png';
 
@@ -7,10 +7,45 @@ export default function LoginPage({ onLoginSuccess }) {
   const [showPassword, setShowPassword] = useState(false);
   const [currentView, setCurrentView] = useState('login'); 
   const [recoveryEmail, setRecoveryEmail] = useState('');
+  
+  const [isExiting, setIsExiting] = useState(false);
+
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
   const handleLoginSubmit = (e) => {
     e.preventDefault();
-    onLoginSuccess();
+    
+    const trimmedUsername = username.trim();
+
+    if (!trimmedUsername) {
+      setError('Please enter your username.');
+      return;
+    }
+
+    if (!password) {
+      setError('Please enter your password.');
+      return;
+    }
+
+    if (trimmedUsername.length > 50) {
+      setError('Username cannot exceed 50 characters.');
+      return;
+    }
+
+    if (password.length > 50) {
+      setError('Password cannot exceed 50 characters.');
+      return;
+    }
+
+    setError('');
+    
+    setIsExiting(true);
+    
+    setTimeout(() => {
+      onLoginSuccess();
+    }, 400);
   };
 
   const handleRecoverySubmit = (e) => {
@@ -19,7 +54,7 @@ export default function LoginPage({ onLoginSuccess }) {
   };
 
   return (
-    <div className="h-screen w-full flex font-sans text-gray-800 overflow-hidden bg-white">
+    <div className={`h-screen w-full flex font-sans text-gray-800 overflow-hidden bg-white animate-in fade-in duration-500 transition-all ${isExiting ? 'opacity-0 -translate-x-16 duration-500' : 'opacity-100'}`}>
       
       {/* Left Panel */}
       <div className="hidden lg:flex w-1/2 bg-[#082B1A] text-white flex-col justify-between p-10 xl:p-16 relative h-full overflow-hidden">
@@ -83,7 +118,7 @@ export default function LoginPage({ onLoginSuccess }) {
           
           {currentView === 'login' && (
             <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-              <div className="mb-10">
+              <div className="mb-8">
                 <div className="flex items-center gap-2 mb-4">
                   <div className="w-4 h-[2px] bg-[#0A3320]"></div>
                   <p className="text-[10px] font-bold tracking-[0.15em] text-[#0A3320] uppercase">
@@ -98,21 +133,58 @@ export default function LoginPage({ onLoginSuccess }) {
                 </p>
               </div>
 
+              {error && (
+                <div className="mb-5 p-3.5 rounded-xl bg-red-50 border border-red-200/80 flex items-start gap-2.5 text-xs text-red-700 animate-in fade-in duration-200">
+                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                  <span className="font-medium leading-relaxed">{error}</span>
+                </div>
+              )}
+
               <form className="space-y-5" onSubmit={handleLoginSubmit}>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-900" htmlFor="username">Username</label>
+                  <div className="flex justify-between items-center">
+                    <label className="text-xs font-bold text-gray-900" htmlFor="username">Username</label>
+                  </div>
                   <div className="relative">
                     <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input id="username" type="text" placeholder="Enter your username" className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-[#0A3320] focus:ring-1 focus:ring-[#0A3320] outline-none transition-colors text-sm" />
+                    <input 
+                      id="username" 
+                      type="text" 
+                      maxLength={50}
+                      value={username}
+                      onChange={(e) => {
+                        setUsername(e.target.value);
+                        if (error) setError('');
+                      }}
+                      placeholder="Enter your username" 
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-[#0A3320] focus:ring-1 focus:ring-[#0A3320] outline-none transition-colors text-sm" 
+                    />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-900" htmlFor="password">Password</label>
+                  <div className="flex justify-between items-center">
+                    <label className="text-xs font-bold text-gray-900" htmlFor="password">Password</label>
+                  </div>
                   <div className="relative">
                     <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input id="password" type={showPassword ? 'text' : 'password'} placeholder="Enter your password" className="w-full pl-10 pr-12 py-3 rounded-xl border border-gray-200 focus:border-[#0A3320] focus:ring-1 focus:ring-[#0A3320] outline-none transition-colors text-sm" />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    <input 
+                      id="password" 
+                      type={showPassword ? 'text' : 'password'} 
+                      maxLength={50}
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (error) setError('');
+                      }}
+                      placeholder="Enter your password" 
+                      className="w-full pl-10 pr-12 py-3 rounded-xl border border-gray-200 focus:border-[#0A3320] focus:ring-1 focus:ring-[#0A3320] outline-none transition-colors text-sm" 
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => setShowPassword(!showPassword)} 
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
@@ -128,7 +200,7 @@ export default function LoginPage({ onLoginSuccess }) {
                   </button>
                 </div>
 
-                <button type="submit" className="w-full bg-[#0A3320] hover:bg-[#061E12] text-white font-medium py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-[#0A3320]/20">
+                <button type="submit" className="w-full bg-[#0A3320] hover:bg-[#061E12] text-white font-medium py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-[#0A3320]/20 cursor-pointer">
                   Sign In
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -138,7 +210,7 @@ export default function LoginPage({ onLoginSuccess }) {
 
           {currentView === 'forgot' && (
             <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-              <button onClick={() => setCurrentView('login')} className="flex items-center gap-1.5 text-xs font-bold text-[#0A3320] hover:underline mb-8">
+              <button onClick={() => setCurrentView('login')} className="flex items-center gap-1.5 text-xs font-bold text-[#0A3320] hover:underline mb-8 cursor-pointer">
                 <ArrowLeft className="w-3.5 h-3.5" /> Back to sign in
               </button>
               <div className="w-14 h-14 bg-[#E8F2EC] rounded-2xl flex items-center justify-center mb-6">
@@ -156,7 +228,7 @@ export default function LoginPage({ onLoginSuccess }) {
                     <input id="recovery-email" type="email" required value={recoveryEmail} onChange={(e) => setRecoveryEmail(e.target.value)} placeholder="name@gmail.com" className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-[#0A3320] focus:ring-1 focus:ring-[#0A3320] outline-none transition-colors text-sm" />
                   </div>
                 </div>
-                <button type="submit" className="w-full bg-[#0A3320] hover:bg-[#061E12] text-white font-medium py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-[#0A3320]/20">
+                <button type="submit" className="w-full bg-[#0A3320] hover:bg-[#061E12] text-white font-medium py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-[#0A3320]/20 cursor-pointer">
                   Send recovery link
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -166,7 +238,7 @@ export default function LoginPage({ onLoginSuccess }) {
 
           {currentView === 'success' && (
             <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-              <button onClick={() => setCurrentView('login')} className="flex items-center gap-1.5 text-xs font-bold text-[#0A3320] hover:underline mb-8">
+              <button onClick={() => setCurrentView('login')} className="flex items-center gap-1.5 text-xs font-bold text-[#0A3320] hover:underline mb-8 cursor-pointer">
                 <ArrowLeft className="w-3.5 h-3.5" /> Back to sign in
               </button>
               <div className="w-14 h-14 bg-[#E8F2EC] rounded-2xl flex items-center justify-center mb-6">

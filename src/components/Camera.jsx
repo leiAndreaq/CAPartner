@@ -1,10 +1,19 @@
 import { useState } from 'react';
-// Clock has been added to the imports below!
-import { Maximize, ChevronRight, Play, X, VideoOff, Camera as CameraIcon, Clock } from 'lucide-react';
+import { Maximize, ChevronRight, Play, VideoOff, Camera as CameraIcon, Clock, X } from 'lucide-react';
 
 export default function Camera() {
   const [showExportModal, setShowExportModal] = useState(false);
-  const [selectedClips, setSelectedClips] = useState([1]); // Default checked item
+  const [selectedClips, setSelectedClips] = useState([1]);
+
+  // Video playback modal state
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [activeClip, setActiveClip] = useState(null);
+
+  // Filter state
+  const [tempDate, setTempDate] = useState('');
+  const [tempCam, setTempCam] = useState('All cameras');
+  const [activeDate, setActiveDate] = useState('');
+  const [activeCam, setActiveCam] = useState('All cameras');
 
   const clips = [
     { id: 1, cam: 'Camera 1', date: '2025-06-16', time: '10:30', duration: '12:45', loc: 'North Transport Terminal' },
@@ -14,10 +23,40 @@ export default function Camera() {
     { id: 5, cam: 'Camera 2', date: '2025-06-14', time: '11:04', duration: '10:30', loc: 'Central Public Market' },
   ];
 
+  const filteredClips = clips.filter(clip => {
+    const matchDate = activeDate ? clip.date === activeDate : true;
+    const matchCam = activeCam !== 'All cameras' ? clip.cam === activeCam : true;
+    return matchDate && matchCam;
+  });
+
   const toggleClip = (id) => {
     setSelectedClips(prev => 
       prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
     );
+  };
+
+  const handleApplyFilters = () => {
+    setActiveDate(tempDate);
+    setActiveCam(tempCam);
+  };
+
+  const handleClearFilters = () => {
+    setTempDate('');
+    setTempCam('All cameras');
+    setActiveDate('');
+    setActiveCam('All cameras');
+  };
+
+  const openVideoModal = (clipData) => {
+    // Determine if the camera is offline based on the top cards (Camera 3 is offline)
+    const isCameraOffline = clipData.cam === 'Camera 3';
+    
+    setActiveClip({ 
+      ...clipData, 
+      isOffline: clipData.isOffline || isCameraOffline 
+    });
+    
+    setShowVideoModal(true);
   };
 
   return (
@@ -39,8 +78,8 @@ export default function Camera() {
             <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 11px)' }}></div>
             <div className="absolute inset-0 opacity-10" style={{ transform: 'perspective(500px) rotateX(60deg)', backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 40px, white 40px, white 42px)' }}></div>
             <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded text-[9px] font-bold text-white tracking-wider">LIVE · CAM-001</div>
-            <button className="absolute bottom-4 right-4 bg-black/60 hover:bg-black/80 backdrop-blur-sm px-3 py-1.5 rounded-lg text-[10px] font-bold text-white tracking-wide flex items-center gap-1.5 transition-colors cursor-pointer">
-              <Maximize className="w-3 h-3" /> Full screen
+            <button className="absolute bottom-4 right-4 bg-black/60 hover:bg-black/80 backdrop-blur-sm p-2 rounded-lg text-white transition-colors cursor-pointer">
+              <Maximize className="w-3.5 h-3.5" />
             </button>
           </div>
           <div className="p-5 flex flex-col flex-1">
@@ -57,7 +96,10 @@ export default function Camera() {
               <p className="text-xs text-gray-500 flex items-center gap-1.5"><CameraIcon className="w-3.5 h-3.5 text-gray-400"/> North Transport Terminal</p>
               <p className="text-xs text-gray-500 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-gray-400"/> Last connection: Today, 10:47 AM</p>
             </div>
-            <button className="mt-auto w-full py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors flex justify-center items-center gap-1 cursor-pointer">
+            <button 
+              onClick={() => openVideoModal(clips.find(c => c.cam === 'Camera 1') || { cam: 'Camera 1', date: 'LIVE', time: 'Now', loc: 'North Transport Terminal' })}
+              className="mt-auto w-full py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors flex justify-center items-center gap-1 cursor-pointer"
+            >
               View recordings <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -69,8 +111,8 @@ export default function Camera() {
             <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 11px)' }}></div>
             <div className="absolute inset-0 opacity-10" style={{ transform: 'perspective(500px) rotateX(60deg)', backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 40px, white 40px, white 42px)' }}></div>
             <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded text-[9px] font-bold text-white tracking-wider">LIVE · CAM-002</div>
-            <button className="absolute bottom-4 right-4 bg-black/60 hover:bg-black/80 backdrop-blur-sm px-3 py-1.5 rounded-lg text-[10px] font-bold text-white tracking-wide flex items-center gap-1.5 transition-colors cursor-pointer">
-              <Maximize className="w-3 h-3" /> Full screen
+            <button className="absolute bottom-4 right-4 bg-black/60 hover:bg-black/80 backdrop-blur-sm p-2 rounded-lg text-white transition-colors cursor-pointer">
+              <Maximize className="w-3.5 h-3.5" />
             </button>
           </div>
           <div className="p-5 flex flex-col flex-1">
@@ -87,7 +129,10 @@ export default function Camera() {
               <p className="text-xs text-gray-500 flex items-center gap-1.5"><CameraIcon className="w-3.5 h-3.5 text-gray-400"/> Central Public Market</p>
               <p className="text-xs text-gray-500 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-gray-400"/> Last connection: Today, 10:46 AM</p>
             </div>
-            <button className="mt-auto w-full py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors flex justify-center items-center gap-1 cursor-pointer">
+            <button 
+              onClick={() => openVideoModal(clips.find(c => c.cam === 'Camera 2') || { cam: 'Camera 2', date: 'LIVE', time: 'Now', loc: 'Central Public Market' })}
+              className="mt-auto w-full py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors flex justify-center items-center gap-1 cursor-pointer"
+            >
               View recordings <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -102,8 +147,8 @@ export default function Camera() {
             <p className="text-sm font-bold text-red-500 tracking-widest uppercase mb-1">Camera Offline</p>
             <p className="text-[10px] text-gray-500">Stream unavailable</p>
             
-            <button className="absolute bottom-4 right-4 bg-black/60 hover:bg-black/80 backdrop-blur-sm px-3 py-1.5 rounded-lg text-[10px] font-bold text-gray-400 tracking-wide flex items-center gap-1.5 transition-colors cursor-pointer">
-              <Maximize className="w-3 h-3" /> Full screen
+            <button className="absolute bottom-4 right-4 bg-black/60 hover:bg-black/80 backdrop-blur-sm p-2 rounded-lg text-gray-400 transition-colors cursor-pointer">
+              <Maximize className="w-3.5 h-3.5" />
             </button>
           </div>
           <div className="p-5 flex flex-col flex-1">
@@ -120,7 +165,10 @@ export default function Camera() {
               <p className="text-xs text-gray-500 flex items-center gap-1.5"><CameraIcon className="w-3.5 h-3.5 text-gray-400"/> South Highway Junction</p>
               <p className="text-xs text-gray-500 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-gray-400"/> Last connection: Today, 9:56 AM</p>
             </div>
-            <button className="mt-auto w-full py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors flex justify-center items-center gap-1 cursor-pointer">
+            <button 
+              onClick={() => openVideoModal({ cam: 'Camera 3', date: 'OFFLINE', time: 'N/A', loc: 'South Highway Junction', isOffline: true })}
+              className="mt-auto w-full py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors flex justify-center items-center gap-1 cursor-pointer"
+            >
               View recordings <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -137,33 +185,42 @@ export default function Camera() {
             <h3 className="text-xl font-bold text-gray-900 mb-1">Recorded clips</h3>
             <p className="text-xs text-gray-500">Recordings retained for deployment posts.</p>
           </div>
-          <button 
-            onClick={() => setShowExportModal(true)}
-            className="bg-[#0A3320] hover:bg-[#061E12] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-colors shadow-sm cursor-pointer"
-          >
-            Export clips
-          </button>
         </div>
 
         {/* Filters */}
         <div className="p-6 flex items-end gap-4 bg-gray-50/50 border-b border-gray-100">
           <div className="w-48">
             <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Date</label>
-            <input type="date" className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-700 outline-none focus:border-[#0A3320] focus:ring-1 focus:ring-[#0A3320]" />
+            <input 
+              type="date" 
+              value={tempDate}
+              onChange={(e) => setTempDate(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-700 outline-none focus:border-[#0A3320] focus:ring-1 focus:ring-[#0A3320]" 
+            />
           </div>
           <div className="w-56">
             <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Camera</label>
-            <select className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-700 outline-none focus:border-[#0A3320] focus:ring-1 focus:ring-[#0A3320] bg-white cursor-pointer">
-              <option>All cameras</option>
-              <option>Camera 1</option>
-              <option>Camera 2</option>
-              <option>Camera 3</option>
+            <select 
+              value={tempCam}
+              onChange={(e) => setTempCam(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-700 outline-none focus:border-[#0A3320] focus:ring-1 focus:ring-[#0A3320] bg-white cursor-pointer"
+            >
+              <option value="All cameras">All cameras</option>
+              <option value="Camera 1">Camera 1</option>
+              <option value="Camera 2">Camera 2</option>
+              <option value="Camera 3">Camera 3</option>
             </select>
           </div>
-          <button className="bg-[#0A3320] hover:bg-[#061E12] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-colors shadow-sm cursor-pointer">
+          <button 
+            onClick={handleApplyFilters}
+            className="bg-[#0A3320] hover:bg-[#061E12] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-colors shadow-sm cursor-pointer"
+          >
             Apply filters
           </button>
-          <button className="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-5 py-2.5 rounded-xl text-xs font-bold transition-colors cursor-pointer">
+          <button 
+            onClick={handleClearFilters}
+            className="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-5 py-2.5 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+          >
             Clear filters
           </button>
         </div>
@@ -183,36 +240,92 @@ export default function Camera() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-xs">
-              {clips.map((clip) => (
-                <tr key={clip.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="py-4 px-6 font-bold text-gray-900">{clip.cam}</td>
-                  <td className="py-4 px-6 font-medium text-gray-600">{clip.date}</td>
-                  <td className="py-4 px-6 font-medium text-gray-600">{clip.time}</td>
-                  <td className="py-4 px-6 font-medium text-gray-600">{clip.duration}</td>
-                  <td className="py-4 px-6 font-medium text-gray-600">{clip.loc}</td>
-                  <td className="py-4 px-6">
-                    <div className="flex justify-center">
-                      <button className="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-[11px] transition-colors flex items-center gap-1.5 cursor-pointer">
-                        <Play className="w-3 h-3 fill-emerald-700" /> Play clip
-                      </button>
-                    </div>
-                  </td>
-                  <td className="py-4 px-6">
-                    <div className="flex justify-center">
-                      <button 
-                        onClick={() => setShowExportModal(true)}
-                        className="px-4 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 font-bold text-[11px] transition-colors cursor-pointer"
-                      >
-                        Export
-                      </button>
-                    </div>
+              {filteredClips.length > 0 ? (
+                filteredClips.map((clip) => (
+                  <tr key={clip.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="py-4 px-6 font-bold text-gray-900">{clip.cam}</td>
+                    <td className="py-4 px-6 font-medium text-gray-600">{clip.date}</td>
+                    <td className="py-4 px-6 font-medium text-gray-600">{clip.time}</td>
+                    <td className="py-4 px-6 font-medium text-gray-600">{clip.duration}</td>
+                    <td className="py-4 px-6 font-medium text-gray-600">{clip.loc}</td>
+                    <td className="py-4 px-6">
+                      <div className="flex justify-center">
+                        <button 
+                          onClick={() => openVideoModal(clip)}
+                          className="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-[11px] transition-colors flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Play className="w-3 h-3 fill-emerald-700" /> Play clip
+                        </button>
+                      </div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="flex justify-center">
+                        <button 
+                          onClick={() => setShowExportModal(true)}
+                          className="px-4 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 font-bold text-[11px] transition-colors cursor-pointer"
+                        >
+                          Export
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-gray-400 font-medium">
+                    No recorded clips match your filters.
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* ----------------- VIDEO PLAYBACK MODAL ----------------- */}
+      {showVideoModal && activeClip && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-4xl shadow-xl animate-in zoom-in-95 duration-200 m-4">
+            
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">{activeClip.cam} - Playback</h3>
+                <p className="text-xs text-gray-500 font-medium">{activeClip.date} · {activeClip.time} · {activeClip.loc}</p>
+              </div>
+              <button 
+                onClick={() => setShowVideoModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors bg-gray-50 hover:bg-gray-100 rounded-full p-2 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Conditional Render: Offline vs Video Player */}
+            {activeClip.isOffline || activeClip.date === 'OFFLINE' ? (
+              <div className="w-full aspect-video bg-[#111] rounded-2xl flex flex-col items-center justify-center relative overflow-hidden border border-gray-200">
+                <VideoOff className="w-12 h-12 text-red-500 mb-3" />
+                <p className="text-base font-bold text-red-500 tracking-widest uppercase mb-1">No Video Available</p>
+                <p className="text-xs text-gray-500">Camera is currently offline.</p>
+              </div>
+            ) : (
+              <div className="w-full aspect-video bg-black rounded-2xl flex flex-col items-center justify-center relative overflow-hidden border border-gray-200">
+                <Play className="w-16 h-16 text-white/40 absolute hover:text-white/60 transition-colors cursor-pointer" />
+                
+                {/* OSD (On-Screen Display) watermark */}
+                <div className="absolute bottom-4 left-4 text-white text-xs font-bold tracking-wider bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded">
+                  {activeClip.cam.toUpperCase()} REC {activeClip.date} {activeClip.time}
+                </div>
+                
+                {/* Fake progress bar */}
+                <div className="absolute bottom-0 left-0 w-full h-1.5 bg-white/20">
+                  <div className="h-full bg-emerald-500 w-1/3"></div>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
 
       {/* ----------------- EXPORT MODAL ----------------- */}
       {showExportModal && (

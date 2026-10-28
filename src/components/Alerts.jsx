@@ -5,70 +5,116 @@ export default function Alerts({ onUnacknowledgedCountChange }) {
   const [alerts, setAlerts] = useState([
     {
       id: 1, type: 'SOS Signal', target: 'Miguel Reyes · ENF-2401', desc: 'Manual SOS signal initiated from wearable device.',
-      time: 'Today, 10:46 AM', severity: 'CRITICAL', status: 'Acknowledged', icon: AlertTriangle
+      time: 'Today, 10:46 AM', date: '2026-10-29', severity: 'CRITICAL', status: 'Acknowledged', icon: AlertTriangle
     },
     {
       id: 2, type: 'Abnormal Heart Rate', target: 'Andrea Dela Cruz · ENF-2402', desc: 'Configured heart-rate warning threshold exceeded at 104 BPM.',
-      time: 'Today, 10:14 AM', severity: 'WARNING', status: 'Acknowledged', icon: AlertTriangle
+      time: 'Today, 10:14 AM', date: '2026-10-29', severity: 'WARNING', status: 'Acknowledged', icon: AlertTriangle
     },
     {
       id: 3, type: 'Camera Offline', target: 'Camera 3 · South Highway', desc: 'Camera stream and heartbeat are unavailable.',
-      time: 'Today, 9:56 AM', severity: 'CRITICAL', status: 'Unacknowledged', icon: VideoOff
+      time: 'Today, 9:56 AM', date: '2026-10-29', severity: 'CRITICAL', status: 'Unacknowledged', icon: VideoOff
     },
     {
       id: 4, type: 'Low Battery', target: 'Jose Santos · ENF-2403', desc: 'Device battery reached 18 percent.',
-      time: 'Today, 9:42 AM', severity: 'WARNING', status: 'Resolved', icon: BatteryWarning
+      time: 'Today, 9:42 AM', date: '2026-10-29', severity: 'WARNING', status: 'Resolved', icon: BatteryWarning
     },
     {
       id: 5, type: 'LoRa Connection Lost', target: 'Miguel Reyes · ENF-2401', desc: 'LoRa fallback connection was temporarily unavailable.',
-      time: 'Yesterday, 4:31 PM', severity: 'INFO', status: 'Resolved', icon: Radio
+      time: 'Yesterday, 4:31 PM', date: '2026-10-28', severity: 'INFO', status: 'Resolved', icon: Radio
     },
   ]);
 
   const [viewedAlert, setViewedAlert] = useState(null);
-  const [toast, setToast] = useState(null); // { message: string }
+  const [toast, setToast] = useState(null); 
+  
+  // Validation modal state
+  const [confirmAction, setConfirmAction] = useState(null); // { id: number, type: 'acknowledge' | 'resolve' }
 
-  // State for dropdown filters
+  // State for filters
   const [severityFilter, setSeverityFilter] = useState('All severities');
   const [deviceFilter, setDeviceFilter] = useState('All enforcers/devices');
+  const [dateFilter, setDateFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('All statuses');
 
-  // Dynamic counts for top cards
+  // Dynamic counts for top cards based on total data (not filtered data)
   const totalAlerts = alerts.length;
   const criticalCount = alerts.filter(a => a.severity === 'CRITICAL' && a.status !== 'Resolved').length;
   const unacknowledgedCount = alerts.filter(a => a.status === 'Unacknowledged').length;
   const resolvedCount = alerts.filter(a => a.status === 'Resolved').length;
 
-  // Show a temporary toast notification in the bottom right
+  // Filter Logic
+  const filteredAlerts = alerts.filter(a => {
+    let sMatch = true;
+    let dMatch = true;
+    let dateMatch = true;
+    let stMatch = true;
+
+    if (severityFilter !== 'All severities') {
+      const mappedSeverity = severityFilter === 'Information' ? 'INFO' : severityFilter.toUpperCase();
+      sMatch = a.severity === mappedSeverity;
+    }
+    
+    if (deviceFilter !== 'All enforcers/devices') {
+      dMatch = a.target === deviceFilter;
+    }
+    
+    if (dateFilter) {
+      dateMatch = a.date === dateFilter;
+    }
+    
+    if (statusFilter !== 'All statuses') {
+      stMatch = a.status === statusFilter;
+    }
+
+    return sMatch && dMatch && dateMatch && stMatch;
+  });
+
   const showToast = (message) => {
     setToast({ message });
     setTimeout(() => setToast(null), 3500);
   };
 
-  // Helper to update the sidebar badge whenever unacknowledged count changes
   const updateBadge = (newAlerts) => {
     const newCount = newAlerts.filter(a => a.status === 'Unacknowledged').length;
     if (onUnacknowledgedCountChange) onUnacknowledgedCountChange(newCount);
   };
 
-  const handleAcknowledge = (id, e) => {
+  // Trigger Confirmation Modals
+  const requestAcknowledge = (id, e) => {
     if (e) e.stopPropagation();
-    const newAlerts = alerts.map(a => a.id === id ? { ...a, status: 'Acknowledged' } : a);
-    setAlerts(newAlerts);
-    updateBadge(newAlerts);
-    const updatedAlert = newAlerts.find(a => a.id === id);
-    showToast(`${updatedAlert.type} was marked as acknowledged.`);
-    if (viewedAlert && viewedAlert.id === id) setViewedAlert(updatedAlert);
+    setConfirmAction({ id, type: 'acknowledge' });
   };
 
-  const handleResolve = (id, e) => {
+  const requestResolve = (id, e) => {
     if (e) e.stopPropagation();
-    const newAlerts = alerts.map(a => a.id === id ? { ...a, status: 'Resolved' } : a);
+    setConfirmAction({ id, type: 'resolve' });
+  };
+
+  // Execute Confirmed Actions
+  const executeConfirmAction = () => {
+    if (!confirmAction) return;
+
+    const { id, type } = confirmAction;
+    const newStatus = type === 'acknowledge' ? 'Acknowledged' : 'Resolved';
+    
+    const newAlerts = alerts.map(a => a.id === id ? { ...a, status: newStatus } : a);
     setAlerts(newAlerts);
     updateBadge(newAlerts);
+    
     const updatedAlert = newAlerts.find(a => a.id === id);
-    showToast(`${updatedAlert.type} was marked as resolved.`);
-    setViewedAlert(null); // Close modal on resolve
+    showToast(`${updatedAlert.type} was marked as ${newStatus.toLowerCase()}.`);
+    
+    // Update or close the detail modal if it's currently open
+    if (viewedAlert && viewedAlert.id === id) {
+      if (type === 'resolve') {
+        setViewedAlert(null);
+      } else {
+        setViewedAlert(updatedAlert);
+      }
+    }
+    
+    setConfirmAction(null);
   };
 
   const severityStyles = {
@@ -139,15 +185,20 @@ export default function Alerts({ onUnacknowledgedCountChange }) {
               className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs text-gray-700 outline-none focus:border-[#0A3320] bg-white cursor-pointer font-medium"
             >
               <option>All enforcers/devices</option>
-              <option>Maya Reyes · PST-207</option>
-              <option>Noah Cruz · PST-311</option>
-              <option>Market East Gate · CAM-03</option>
-              <option>Ava Santos · PST-104</option>
+              <option>Miguel Reyes · ENF-2401</option>
+              <option>Andrea Dela Cruz · ENF-2402</option>
+              <option>Jose Santos · ENF-2403</option>
+              <option>Camera 3 · South Highway</option>
             </select>
           </div>
           <div className="flex-1">
             <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Date</label>
-            <input type="date" className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs text-gray-700 outline-none focus:border-[#0A3320]" />
+            <input 
+              type="date" 
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs text-gray-700 outline-none focus:border-[#0A3320]" 
+            />
           </div>
           <div className="flex-1">
             <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Status</label>
@@ -166,65 +217,71 @@ export default function Alerts({ onUnacknowledgedCountChange }) {
 
         {/* List of Alerts */}
         <div className="divide-y divide-gray-100">
-          {alerts.map((alert) => {
-            const theme = severityStyles[alert.severity];
-            const isResolved = alert.status === 'Resolved';
-            
-            return (
-              <div key={alert.id} className={`p-6 flex items-start justify-between transition-colors ${isResolved ? 'opacity-60 bg-gray-50/50' : 'hover:bg-gray-50/30'}`}>
-                <div className="flex gap-5">
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${theme.bg}`}>
-                    <alert.icon className={`w-6 h-6 ${theme.icon}`} />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-wider ${theme.bg} ${theme.text}`}>
-                        {alert.severity}
-                      </span>
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-wider ${statusStyles[alert.status]}`}>
-                        {alert.status}
-                      </span>
+          {filteredAlerts.length > 0 ? (
+            filteredAlerts.map((alert) => {
+              const theme = severityStyles[alert.severity];
+              const isResolved = alert.status === 'Resolved';
+              
+              return (
+                <div key={alert.id} className={`p-6 flex items-start justify-between transition-colors ${isResolved ? 'opacity-60 bg-gray-50/50' : 'hover:bg-gray-50/30'}`}>
+                  <div className="flex gap-5">
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${theme.bg}`}>
+                      <alert.icon className={`w-6 h-6 ${theme.icon}`} />
                     </div>
-                    <h3 className={`text-lg font-bold mb-1 ${isResolved ? 'text-gray-600' : 'text-gray-900'}`}>{alert.type}</h3>
-                    <p className="text-xs font-bold text-gray-700 mb-1">{alert.target}</p>
-                    <p className="text-xs text-gray-500 mb-2">{alert.desc}</p>
-                    <p className="text-[10px] font-medium text-gray-400">{alert.time}</p>
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-wider ${theme.bg} ${theme.text}`}>
+                          {alert.severity}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-wider ${statusStyles[alert.status]}`}>
+                          {alert.status}
+                        </span>
+                      </div>
+                      <h3 className={`text-lg font-bold mb-1 ${isResolved ? 'text-gray-600' : 'text-gray-900'}`}>{alert.type}</h3>
+                      <p className="text-xs font-bold text-gray-700 mb-1">{alert.target}</p>
+                      <p className="text-xs text-gray-500 mb-2">{alert.desc}</p>
+                      <p className="text-[10px] font-medium text-gray-400">{alert.time}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button 
+                      onClick={() => setViewedAlert(alert)}
+                      className="px-4 py-2 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 font-bold text-xs transition-colors cursor-pointer"
+                    >
+                      View details
+                    </button>
+                    {alert.status === 'Unacknowledged' && (
+                      <button 
+                        onClick={(e) => requestAcknowledge(alert.id, e)}
+                        className="px-4 py-2 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-xs transition-colors cursor-pointer"
+                      >
+                        Acknowledge
+                      </button>
+                    )}
+                    {!isResolved && (
+                      <button 
+                        onClick={(e) => requestResolve(alert.id, e)}
+                        className="px-4 py-2 rounded-xl bg-[#0A3320] text-white hover:bg-[#061E12] font-bold text-xs transition-colors cursor-pointer shadow-sm"
+                      >
+                        Resolve
+                      </button>
+                    )}
                   </div>
                 </div>
-                
-                <div className="flex items-center gap-2 shrink-0">
-                  <button 
-                    onClick={() => setViewedAlert(alert)}
-                    className="px-4 py-2 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 font-bold text-xs transition-colors cursor-pointer"
-                  >
-                    View details
-                  </button>
-                  {alert.status === 'Unacknowledged' && (
-                    <button 
-                      onClick={(e) => handleAcknowledge(alert.id, e)}
-                      className="px-4 py-2 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-xs transition-colors cursor-pointer"
-                    >
-                      Acknowledge
-                    </button>
-                  )}
-                  {!isResolved && (
-                    <button 
-                      onClick={(e) => handleResolve(alert.id, e)}
-                      className="px-4 py-2 rounded-xl bg-[#0A3320] text-white hover:bg-[#061E12] font-bold text-xs transition-colors cursor-pointer shadow-sm"
-                    >
-                      Resolve
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+              );
+            })
+          ) : (
+            <div className="p-12 text-center text-gray-400 font-medium">
+              No alerts match your current filters.
+            </div>
+          )}
         </div>
       </div>
 
       {/* ----------------- VIEW DETAILS MODAL ----------------- */}
       {viewedAlert && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-gray-900/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl p-8 w-full max-w-lg shadow-xl animate-in zoom-in-95 duration-200 m-4 relative">
             
             {/* Modal Header */}
@@ -262,7 +319,7 @@ export default function Alerts({ onUnacknowledgedCountChange }) {
               </button>
               {viewedAlert.status === 'Unacknowledged' && (
                 <button 
-                  onClick={() => handleAcknowledge(viewedAlert.id)}
+                  onClick={() => requestAcknowledge(viewedAlert.id)}
                   className="flex-1 py-3 rounded-xl font-bold text-sm bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors cursor-pointer"
                 >
                   Acknowledge
@@ -270,7 +327,7 @@ export default function Alerts({ onUnacknowledgedCountChange }) {
               )}
               {viewedAlert.status !== 'Resolved' && (
                 <button 
-                  onClick={() => handleResolve(viewedAlert.id)}
+                  onClick={() => requestResolve(viewedAlert.id)}
                   className="flex-1 py-3 rounded-xl font-bold text-sm bg-[#0A3320] text-white hover:bg-[#061E12] transition-colors cursor-pointer shadow-sm"
                 >
                   Resolve alert
@@ -278,6 +335,53 @@ export default function Alerts({ onUnacknowledgedCountChange }) {
               )}
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* ----------------- ACTION CONFIRMATION MODAL ----------------- */}
+      {confirmAction && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl animate-in zoom-in-95 duration-200 m-4 relative">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
+                  <AlertTriangle className="w-5 h-5" strokeWidth={2.5} />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 capitalize">
+                  {confirmAction.type} Alert
+                </h3>
+              </div>
+              <button 
+                onClick={() => setConfirmAction(null)}
+                className="text-gray-400 hover:text-gray-600 transition-colors bg-gray-50 hover:bg-gray-100 rounded-full p-1.5 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+              Are you sure you want to mark this alert as <strong>{confirmAction.type === 'acknowledge' ? 'Acknowledged' : 'Resolved'}</strong>? This will update the system record.
+            </p>
+            
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setConfirmAction(null)}
+                className="flex-1 py-3 rounded-xl font-bold text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={executeConfirmAction}
+                className={`flex-1 py-3 rounded-xl font-bold text-sm text-white transition-colors cursor-pointer shadow-sm ${
+                  confirmAction.type === 'acknowledge' 
+                    ? 'bg-emerald-600 hover:bg-emerald-700' 
+                    : 'bg-[#0A3320] hover:bg-[#061E12]'
+                }`}
+              >
+                Confirm
+              </button>
+            </div>
           </div>
         </div>
       )}

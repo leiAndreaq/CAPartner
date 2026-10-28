@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Monitor, RefreshCw, Eye, Trash2, Loader2, Activity, MapPin, Clock, ArrowLeft, Radio, X, AlertTriangle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Monitor, Eye, Power, Loader2, Activity, MapPin, Clock, ArrowLeft, Radio, X, AlertTriangle, UserPlus, CheckCircle2, Mail } from 'lucide-react';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -9,12 +9,20 @@ import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 let DefaultIcon = L.icon({ iconUrl: icon, shadowUrl: iconShadow, iconSize: [25, 41], iconAnchor: [12, 41] });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-export default function Monitoring() {
+export default function Monitoring({ targetId, onResetTarget }) {
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [viewEnforcer, setViewEnforcer] = useState(null);
-  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  // { id, action: 'deactivate' | 'reactivate' }
+  const [statusChange, setStatusChange] = useState(null);
+
+  // Add enforcer flow
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newEnforcer, setNewEnforcer] = useState({ name: '', email: '' });
+  const [formErrors, setFormErrors] = useState({});
+  const [showCreateConfirm, setShowCreateConfirm] = useState(false);
+  const [createdEnforcer, setCreatedEnforcer] = useState(null);
 
   const initialEnforcers = [
     { 
@@ -36,18 +44,158 @@ export default function Monitoring() {
 
   const [enforcers, setEnforcers] = useState(initialEnforcers);
 
+  // Automatically open the detailed view if a targetId is passed from Overview
+  useEffect(() => {
+    if (targetId) {
+      const target = enforcers.find(e => e.id === targetId);
+      if (target) {
+        setViewEnforcer(target);
+      }
+    }
+  }, [targetId, enforcers]);
+
+  // Handle the back button to reset both the local view and the App.jsx target
+  const handleBackToMonitoring = () => {
+    setViewEnforcer(null);
+    if (onResetTarget) onResetTarget();
+  };
+
+  // Simulated reload. Keeps current state so deactivated records stay deactivated.
   const handleRefresh = () => {
     setIsLoading(true);
     setTimeout(() => {
-      setEnforcers(initialEnforcers);
       setIsLoading(false);
     }, 1200);
   };
 
-  const confirmDelete = () => {
-    setEnforcers(enforcers.filter((e) => e.id !== deleteConfirmId));
-    setDeleteConfirmId(null);
+  const confirmStatusChange = () => {
+    if (!statusChange) return;
+    const { id, action } = statusChange;
+
+    setEnforcers((prev) =>
+      prev.map((e) => {
+        if (e.id !== id) return e;
+
+        if (action === 'deactivate') {
+          return {
+            ...e,
+            prev: {
+              status: e.status,
+              color: e.color,
+              locType: e.locType,
+              motion: e.motion,
+              hr: e.hr,
+              temp: e.temp,
+            },
+            status: 'Deactivated',
+            color: 'gray',
+            locType: 'LAST KNOWN',
+            motion: 'Deactivated',
+            hr: '--',
+            temp: '--',
+          };
+        }
+
+        // reactivate: restore the state saved at deactivation
+        return { ...e, ...(e.prev || { status: 'Normal', color: 'emerald' }) };
+      })
+    );
+
+    setStatusChange(null);
   };
+
+  // ---- Add enforcer handlers ----
+  const openAddForm = () => {
+    setNewEnforcer({ name: '', email: '' });
+    setFormErrors({});
+    setShowAddForm(true);
+  };
+
+  const closeAddForm = () => {
+    setShowAddForm(false);
+    setShowCreateConfirm(false);
+    setFormErrors({});
+  };
+
+  const validateField = (field, rawValue) => {
+    const value = rawValue.trim();
+
+    if (field === 'name') {
+      if (!value) return 'Name is required.';
+      if (value.length < 2) return 'Name must be at least 2 characters.';
+      if (value.length > 60) return 'Name must be 60 characters or fewer.';
+      if (!/^\p{L}[\p{L}\s.'-]*$/u.test(value)) {
+        return 'Name can only contain letters';
+      }
+      return '';
+    }
+
+    if (field === 'email') {
+      if (!value) return 'Email is required.';
+      if (value.length > 254) return 'Email is too long.';
+      if (/\s/.test(value) || value.includes('..') || !/^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/.test(value)) {
+        return 'Enter a valid email address.';
+      }
+      if (enforcers.some((e) => e.email && e.email.toLowerCase() === value.toLowerCase())) {
+        return 'An enforcer with this email already exists.';
+      }
+      return '';
+    }
+
+    return '';
+  };
+
+  const handleFieldChange = (field, value) => {
+    setNewEnforcer((prev) => ({ ...prev, [field]: value }));
+    // Re-check live only once a field is already showing an error
+    if (formErrors[field]) {
+      setFormErrors((prev) => ({ ...prev, [field]: validateField(field, value) }));
+    }
+  };
+
+  const handleFieldBlur = (field) => {
+    setFormErrors((prev) => ({ ...prev, [field]: validateField(field, newEnforcer[field]) }));
+  };
+
+  const handleCreateClick = () => {
+    const errors = {
+      name: validateField('name', newEnforcer.name),
+      email: validateField('email', newEnforcer.email),
+    };
+
+    setFormErrors(errors);
+    if (!errors.name && !errors.email) setShowCreateConfirm(true);
+  };
+
+  const confirmCreate = () => {
+    const id = enforcers.length ? Math.max(...enforcers.map((e) => e.id)) + 1 : 1;
+    const created = {
+      id,
+      name: newEnforcer.name.trim(),
+      email: newEnforcer.email.trim(),
+      badge: `ENF-${2400 + id}`,
+      status: 'Normal',
+      post: 'Unassigned',
+      locType: 'CURRENT',
+      address: 'Awaiting location',
+      color: 'emerald',
+      time: `Today, ${new Date().toLocaleTimeString('en-US')}`,
+      coords: [14.6507, 120.9822],
+      hr: '--',
+      temp: '--',
+      motion: 'Stationary',
+      battery: '--',
+    };
+
+    setEnforcers((prev) => [...prev, created]);
+    setCreatedEnforcer(created);
+    setShowCreateConfirm(false);
+    setShowAddForm(false);
+    setActiveTab('all');
+  };
+
+  const statusChangeTarget = statusChange ? enforcers.find((e) => e.id === statusChange.id) : null;
+  const isDeactivating = statusChange?.action === 'deactivate';
 
   const filteredEnforcers = enforcers.filter((enf) => {
     const matchesSearch = 
@@ -56,15 +204,23 @@ export default function Monitoring() {
       enf.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
       enf.post.toLowerCase().includes(searchQuery.toLowerCase());
 
-    if (activeTab === 'all') return matchesSearch;
-    return matchesSearch && enf.id === Number(activeTab);
+    const isDeactivatedEnf = enf.status === 'Deactivated';
+    if (activeTab === 'deactivated') return matchesSearch && isDeactivatedEnf;
+    return matchesSearch && !isDeactivatedEnf;
   });
+
+  const activeCount = enforcers.filter((e) => e.status !== 'Deactivated').length;
+  const deactivatedCount = enforcers.length - activeCount;
 
   const colors = {
     emerald: { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500' },
     amber: { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500' },
     red: { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' },
+    gray: { bg: 'bg-gray-100', text: 'text-gray-600', dot: 'bg-gray-400' },
   };
+
+  // A device only counts as online when the enforcer is active and not offline
+  const isDeviceOnline = (enf) => enf.status !== 'Offline' && enf.status !== 'Deactivated';
 
   return (
     <div className="p-8 h-full overflow-y-auto bg-[#F8FAF9]">
@@ -74,7 +230,7 @@ export default function Monitoring() {
         <div className="animate-in fade-in slide-in-from-right-4 duration-300">
           
           <button 
-            onClick={() => setViewEnforcer(null)}
+            onClick={handleBackToMonitoring}
             className="flex items-center gap-1.5 text-xs font-bold text-[#0A3320] hover:underline mb-4 cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" /> Back to monitoring
@@ -285,17 +441,16 @@ export default function Monitoring() {
                 </div>
               </div>
 
-              {/* Updated boxes: darker border, added shadow, decreased bottom margin */}
               <div className="grid grid-cols-3 gap-4 mb-2.5">
                 <div className="border border-gray-200 shadow-sm rounded-xl p-4 flex flex-col justify-center">
-                  <div className={`w-2 h-2 rounded-full mb-3 ${viewEnforcer.status !== 'Offline' ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
+                  <div className={`w-2 h-2 rounded-full mb-3 ${isDeviceOnline(viewEnforcer) ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
                   <p className="text-[9px] text-gray-400 font-medium mb-1">Internet connection</p>
-                  <p className="font-bold text-sm text-gray-900">{viewEnforcer.status !== 'Offline' ? 'Online' : 'Offline'}</p>
+                  <p className="font-bold text-sm text-gray-900">{isDeviceOnline(viewEnforcer) ? 'Online' : 'Offline'}</p>
                 </div>
                 <div className="border border-gray-200 shadow-sm rounded-xl p-4 flex flex-col justify-center">
-                  <div className={`w-2 h-2 rounded-full mb-3 ${viewEnforcer.status !== 'Offline' ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
+                  <div className={`w-2 h-2 rounded-full mb-3 ${isDeviceOnline(viewEnforcer) ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
                   <p className="text-[9px] text-gray-400 font-medium mb-1">LoRa connection</p>
-                  <p className="font-bold text-sm text-gray-900">{viewEnforcer.status !== 'Offline' ? 'Online' : 'Offline'}</p>
+                  <p className="font-bold text-sm text-gray-900">{isDeviceOnline(viewEnforcer) ? 'Online' : 'Offline'}</p>
                 </div>
                 <div className="border border-gray-200 shadow-sm rounded-xl p-4 flex flex-col justify-center">
                   <Activity className="w-4 h-4 text-gray-400 mb-2" />
@@ -372,6 +527,12 @@ export default function Monitoring() {
               <h2 className="text-3xl font-bold text-gray-900 mb-1">Enforcer Monitoring</h2>
               <p className="text-sm text-gray-500">Search, filter, and review each enforcer record.</p>
             </div>
+            <button
+              onClick={openAddForm}
+              className="px-4 py-2.5 rounded-xl bg-[#0A3320] hover:bg-[#0d4a2e] text-white text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer shadow-sm"
+            >
+              <UserPlus className="w-4 h-4" /> Add Enforcer
+            </button>
           </div>
 
           <div className="bg-white rounded-3xl border border-gray-200/80 shadow-sm overflow-hidden">
@@ -381,16 +542,15 @@ export default function Monitoring() {
                 className={`pb-3 border-b-2 transition-all cursor-pointer ${activeTab === 'all' ? 'border-[#0A3320] text-[#0A3320]' : 'border-transparent hover:text-gray-900'}`}
               >
                 All Enforcers
+                <span className="ml-2 px-1.5 py-0.5 rounded-full bg-gray-100 text-[10px] text-gray-500">{activeCount}</span>
               </button>
-              {initialEnforcers.map((enf) => (
-                <button 
-                  key={enf.id}
-                  onClick={() => setActiveTab(String(enf.id))}
-                  className={`pb-3 border-b-2 transition-all cursor-pointer ${activeTab === String(enf.id) ? 'border-[#0A3320] text-[#0A3320]' : 'border-transparent hover:text-gray-900'}`}
-                >
-                  {enf.label}
-                </button>
-              ))}
+              <button 
+                onClick={() => setActiveTab('deactivated')}
+                className={`pb-3 border-b-2 transition-all cursor-pointer ${activeTab === 'deactivated' ? 'border-[#0A3320] text-[#0A3320]' : 'border-transparent hover:text-gray-900'}`}
+              >
+                Deactivated Enforcers
+                <span className="ml-2 px-1.5 py-0.5 rounded-full bg-gray-100 text-[10px] text-gray-500">{deactivatedCount}</span>
+              </button>
             </div>
 
             <div className="p-6 flex items-center justify-between gap-4">
@@ -431,7 +591,7 @@ export default function Monitoring() {
                   <thead>
                     <tr className="bg-gray-50/70 border-y border-gray-200/80 text-[10px] font-bold tracking-wider text-gray-400 uppercase">
                       <th className="py-3.5 px-6">NAME</th>
-                      <th className="py-3.5 px-6">BADGE NUMBER</th>
+                      <th className="py-3.5 px-6 whitespace-nowrap">BADGE NUMBER</th>
                       <th className="py-3.5 px-6">STATUS</th>
                       <th className="py-3.5 px-6">LOCATION</th>
                       <th className="py-3.5 px-6">DEPLOYMENT POST</th>
@@ -443,9 +603,10 @@ export default function Monitoring() {
                     {filteredEnforcers.length > 0 ? (
                       filteredEnforcers.map((enf) => {
                         const theme = colors[enf.color];
+                        const isDeactivated = enf.status === 'Deactivated';
                         
                         return (
-                          <tr key={enf.id} className="hover:bg-gray-50/50 transition-colors">
+                          <tr key={enf.id} className={`hover:bg-gray-50/50 transition-colors ${isDeactivated ? 'opacity-70' : ''}`}>
                             <td className="py-4 px-6">
                               <div className="flex items-center gap-3">
                                 <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs ${theme.bg} ${theme.text}`}>
@@ -453,11 +614,10 @@ export default function Monitoring() {
                                 </div>
                                 <div>
                                   <p className="font-bold text-gray-900 leading-tight">{enf.name}</p>
-                                  <p className="text-[10px] text-gray-400">{enf.label}</p>
                                 </div>
                               </div>
                             </td>
-                            <td className="py-4 px-6 font-medium text-gray-600">{enf.badge}</td>
+                            <td className="py-4 px-6 font-medium text-gray-600 whitespace-nowrap">{enf.badge}</td>
                             <td className="py-4 px-6">
                               <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${theme.bg} ${theme.text}`}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${theme.dot}`}></span>
@@ -478,12 +638,21 @@ export default function Monitoring() {
                                 >
                                   <Eye className="w-3 h-3" /> View
                                 </button>
-                                <button 
-                                  onClick={() => setDeleteConfirmId(enf.id)}
-                                  className="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 font-bold text-[11px] transition-colors flex items-center gap-1 cursor-pointer"
-                                >
-                                  <Trash2 className="w-3 h-3" /> Delete
-                                </button>
+                                {isDeactivated ? (
+                                  <button 
+                                    onClick={() => setStatusChange({ id: enf.id, action: 'reactivate' })}
+                                    className="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-[11px] transition-colors flex items-center gap-1 cursor-pointer"
+                                  >
+                                    <Power className="w-3 h-3" /> Reactivate
+                                  </button>
+                                ) : (
+                                  <button 
+                                    onClick={() => setStatusChange({ id: enf.id, action: 'deactivate' })}
+                                    className="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 font-bold text-[11px] transition-colors flex items-center gap-1 cursor-pointer"
+                                  >
+                                    <Power className="w-3 h-3" /> Deactivate
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -492,7 +661,9 @@ export default function Monitoring() {
                     ) : (
                       <tr>
                         <td colSpan={7} className="py-8 text-center text-gray-400 font-medium">
-                          No matching enforcer records found.
+                          {activeTab === 'deactivated' && searchQuery === ''
+                            ? 'No deactivated enforcers.'
+                            : 'No matching enforcer records found.'}
                         </td>
                       </tr>
                     )}
@@ -504,19 +675,150 @@ export default function Monitoring() {
         </div>
       )}
 
-      {/* DELETE CONFIRMATION MODAL */}
-      {deleteConfirmId && (
+      {/* ADD ENFORCER FORM MODAL */}
+      {showAddForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-xl animate-in zoom-in-95 duration-200 m-4">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#E8F2EC] flex items-center justify-center text-[#0A3320] shrink-0">
+                  <UserPlus className="w-5 h-5" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900">Add Enforcer</h3>
+              </div>
+              <button
+                onClick={closeAddForm}
+                className="text-gray-400 hover:text-gray-600 transition-colors bg-gray-50 hover:bg-gray-100 rounded-full p-1.5 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mb-5 ml-[52px]">
+              Badge number and location details will be sent to the enforcer through email.
+            </p>
+
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-[10px] font-bold tracking-wider text-gray-500 uppercase mb-1.5">Full name</label>
+                <input
+                  type="text"
+                  value={newEnforcer.name}
+                  onChange={(e) => handleFieldChange('name', e.target.value)}
+                  onBlur={() => handleFieldBlur('name')}
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreateClick()}
+                  maxLength={60}
+                  autoFocus
+                  placeholder="e.g. Juan Dela Cruz"
+                  className={`w-full px-4 py-2.5 rounded-xl border outline-none text-sm transition-colors focus:ring-1 ${formErrors.name ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#0A3320] focus:ring-[#0A3320]'}`}
+                />
+                {formErrors.name && <p className="text-[11px] text-red-600 font-medium mt-1">{formErrors.name}</p>}
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold tracking-wider text-gray-500 uppercase mb-1.5">Email address</label>
+                <input
+                  type="email"
+                  value={newEnforcer.email}
+                  onChange={(e) => handleFieldChange('email', e.target.value)}
+                  onBlur={() => handleFieldBlur('email')}
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreateClick()}
+                  maxLength={254}
+                  placeholder="name@example.com"
+                  className={`w-full px-4 py-2.5 rounded-xl border outline-none text-sm transition-colors focus:ring-1 ${formErrors.email ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#0A3320] focus:ring-[#0A3320]'}`}
+                />
+                {formErrors.email && <p className="text-[11px] text-red-600 font-medium mt-1">{formErrors.email}</p>}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={closeAddForm}
+                className="flex-1 py-3 rounded-xl font-bold text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateClick}
+                className="flex-1 py-3 rounded-xl font-bold text-sm bg-[#0A3320] text-white hover:bg-[#0d4a2e] transition-colors cursor-pointer"
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CREATE CONFIRMATION MODAL */}
+      {showCreateConfirm && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-gray-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl animate-in zoom-in-95 duration-200 m-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-[#E8F2EC] flex items-center justify-center text-[#0A3320] shrink-0">
+                <UserPlus className="w-5 h-5" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">Create Account</h3>
+            </div>
+            <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+              Create an enforcer account for <span className="font-bold text-gray-700">{newEnforcer.name.trim()}</span> using <span className="font-bold text-gray-700">{newEnforcer.email.trim()}</span>?
+            </p>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowCreateConfirm(false)}
+                className="flex-1 py-3 rounded-xl font-bold text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmCreate}
+                className="flex-1 py-3 rounded-xl font-bold text-sm bg-[#0A3320] text-white hover:bg-[#0d4a2e] transition-colors cursor-pointer"
+              >
+                Yes, Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ACCOUNT CREATED SUCCESS MODAL */}
+      {createdEnforcer && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-gray-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl animate-in zoom-in-95 duration-200 m-4 text-center">
+            <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 mx-auto mb-4">
+              <CheckCircle2 className="w-7 h-7" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Account created successfully</h3>
+            <p className="text-sm text-gray-500 mb-1 leading-relaxed">
+              A temporary password will be sent to
+            </p>
+            <p className="text-sm font-bold text-gray-800 mb-6 flex items-center justify-center gap-1.5">
+              <Mail className="w-4 h-4 text-gray-400" /> {createdEnforcer.email}
+            </p>
+            <button
+              onClick={() => setCreatedEnforcer(null)}
+              className="w-full py-3 rounded-xl font-bold text-sm bg-[#0A3320] text-white hover:bg-[#0d4a2e] transition-colors cursor-pointer"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* DEACTIVATE / REACTIVATE CONFIRMATION MODAL */}
+      {statusChange && statusChangeTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl animate-in zoom-in-95 duration-200 m-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-600 shrink-0">
-                  <AlertTriangle className="w-5 h-5 ml-0.5" strokeWidth={2} />
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isDeactivating ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700'}`}>
+                  {isDeactivating
+                    ? <AlertTriangle className="w-5 h-5 ml-0.5" strokeWidth={2} />
+                    : <Power className="w-5 h-5" strokeWidth={2} />}
                 </div>
-                <h3 className="text-xl font-bold text-gray-900">Delete Record</h3>
+                <h3 className="text-xl font-bold text-gray-900">
+                  {isDeactivating ? 'Deactivate Enforcer' : 'Reactivate Enforcer'}
+                </h3>
               </div>
               <button 
-                onClick={() => setDeleteConfirmId(null)}
+                onClick={() => setStatusChange(null)}
                 className="text-gray-400 hover:text-gray-600 transition-colors bg-gray-50 hover:bg-gray-100 rounded-full p-1.5 cursor-pointer"
               >
                 <X className="w-4 h-4" />
@@ -524,21 +826,31 @@ export default function Monitoring() {
             </div>
             
             <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-              Are you sure you want to delete this enforcer record? This action will permanently remove their tracking history.
+              {isDeactivating ? (
+                <>
+                  Are you sure you want to deactivate <span className="font-bold text-gray-700">{statusChangeTarget.name}</span> ({statusChangeTarget.badge})? 
+                  Live tracking will stop, but their record and tracking history will be kept. You can reactivate them at any time.
+                </>
+              ) : (
+                <>
+                  Reactivate <span className="font-bold text-gray-700">{statusChangeTarget.name}</span> ({statusChangeTarget.badge})? 
+                  Their monitoring will resume.
+                </>
+              )}
             </p>
             
             <div className="flex items-center gap-3">
               <button 
-                onClick={() => setDeleteConfirmId(null)}
+                onClick={() => setStatusChange(null)}
                 className="flex-1 py-3 rounded-xl font-bold text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button 
-                onClick={confirmDelete}
-                className="flex-1 py-3 rounded-xl font-bold text-sm bg-[#E02424] text-white hover:bg-red-700 transition-colors cursor-pointer"
+                onClick={confirmStatusChange}
+                className={`flex-1 py-3 rounded-xl font-bold text-sm text-white transition-colors cursor-pointer ${isDeactivating ? 'bg-[#E02424] hover:bg-red-700' : 'bg-[#0A3320] hover:bg-[#0d4a2e]'}`}
               >
-                Yes, Delete
+                {isDeactivating ? 'Yes, Deactivate' : 'Yes, Reactivate'}
               </button>
             </div>
           </div>
