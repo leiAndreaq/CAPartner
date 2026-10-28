@@ -1,16 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bell, Menu, Shield, LogOut, User, Check, Trash2, ChevronDown, X, ShieldAlert } from 'lucide-react';
+import { Bell, Menu, User, Trash2, ChevronDown, X, ShieldAlert } from 'lucide-react';
 
-export default function Navbar({ activePage, notifications = [], onNavigate, onClearAll, onLogout, onOpenSidebar, adminProfile }) {
+export default function Navbar({ activePage, notifications = [], onNavigate, onClearAll, onOpenSidebar, adminProfile }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
-  const [activeTab, setActiveTab] = useState('All'); // State para sa filter tabs ('All', 'SOS', 'Health', 'Connection', 'Device')
+  const [activeTab, setActiveTab] = useState('All');
 
   const notifRef = useRef(null);
   const profileRef = useRef(null);
 
-  // Filter notifications batay sa napiling tab
   const filteredNotifications = notifications.filter(item => {
     if (activeTab === 'All') return true;
     if (activeTab === 'SOS') return item.category === 'SOS';
@@ -23,7 +22,6 @@ export default function Navbar({ activePage, notifications = [], onNavigate, onC
   const unacknowledgedList = notifications.filter(n => n.status === 'Unacknowledged');
   const unreadCount = unacknowledgedList.length;
 
-  // Isara ang dropdowns kapag nag-click sa labas
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (notifRef.current && !notifRef.current.contains(event.target)) {
@@ -45,14 +43,17 @@ export default function Navbar({ activePage, notifications = [], onNavigate, onC
   return (
     <header className="h-16 bg-white border-b border-gray-200 px-4 sm:px-6 flex items-center justify-between shrink-0 relative z-30">
       
-      {/* Left: Mobile Sidebar Toggle & Breadcrumbs */}
+      {/* Left: Mobile Toggle & Breadcrumbs */}
       <div className="flex items-center gap-3">
-        <button
-          onClick={onOpenSidebar}
-          className="p-2 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 lg:hidden transition-colors cursor-pointer"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
+        {onOpenSidebar && (
+          <button
+            onClick={onOpenSidebar}
+            className="p-2 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 lg:hidden transition-colors cursor-pointer"
+            aria-label="Open mobile menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        )}
 
         <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-gray-500">
           <span className="hidden sm:inline">CAPartner</span>
@@ -84,11 +85,9 @@ export default function Navbar({ activePage, notifications = [], onNavigate, onC
             )}
           </button>
 
-          {/* Notifications Panel (Full Screen on Mobile, Popover on Desktop) */}
+          {/* Notifications Panel */}
           {showNotifications && (
             <div className="fixed inset-x-0 bottom-0 top-16 sm:absolute sm:inset-auto sm:right-0 sm:mt-2 sm:w-[410px] sm:max-h-[85vh] bg-white sm:rounded-3xl shadow-2xl border-t sm:border border-gray-100 overflow-hidden z-50 flex flex-col animate-in slide-in-from-bottom-5 sm:zoom-in-95 duration-200">
-              
-              {/* Header */}
               <div className="p-4 bg-[#0A3320] text-white flex items-center justify-between shrink-0">
                 <div>
                   <h4 className="font-bold text-sm">Notifications</h4>
@@ -114,27 +113,24 @@ export default function Navbar({ activePage, notifications = [], onNavigate, onC
                 </div>
               </div>
 
-              {/* Filter Tabs Bar (All, SOS, Health, Connection, Device) */}
+              {/* Filter Tabs Bar */}
               <div className="bg-[#082B1A] px-3 py-2 flex items-center gap-1.5 overflow-x-auto shrink-0 border-t border-emerald-900/50 scrollbar-none">
-                {['All', 'SOS', 'Health', 'Connection', 'Device'].map((tab) => {
-                  const isActive = activeTab === tab;
-                  return (
-                    <button
-                      key={tab}
-                      onClick={() => setActiveTab(tab)}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                        isActive 
-                          ? 'bg-white/20 text-white shadow-sm border border-white/20' 
-                          : 'text-emerald-200/70 hover:bg-white/10 hover:text-white'
-                      }`}
-                    >
-                      {tab}
-                    </button>
-                  );
-                })}
+                {['All', 'SOS', 'Health', 'Connection', 'Device'].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                      activeTab === tab 
+                        ? 'bg-white/20 text-white shadow-sm border border-white/20' 
+                        : 'text-emerald-200/70 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
               </div>
 
-              {/* Notification List (Scrollable) */}
+              {/* Notification Items */}
               <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
                 {filteredNotifications.length > 0 ? (
                   filteredNotifications.map((item) => (
@@ -165,7 +161,6 @@ export default function Navbar({ activePage, notifications = [], onNavigate, onC
                 )}
               </div>
 
-              {/* Footer */}
               <div className="p-3 bg-gray-50 border-t border-gray-100 text-center shrink-0">
                 <button
                   onClick={() => {
@@ -181,7 +176,7 @@ export default function Navbar({ activePage, notifications = [], onNavigate, onC
           )}
         </div>
 
-        {/* Profile Dropdown Menu */}
+        {/* Profile Menu Dropdown (WALANG LOGOUT OPTION) */}
         <div className="relative" ref={profileRef}>
           <button
             onClick={() => setShowProfileMenu(!showProfileMenu)}
@@ -201,7 +196,6 @@ export default function Navbar({ activePage, notifications = [], onNavigate, onC
             <ChevronDown className="w-4 h-4 text-gray-400 hidden sm:block" />
           </button>
 
-          {/* Profile Menu Dropdown */}
           {showProfileMenu && (
             <div className="absolute right-0 mt-2 w-56 bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200 py-1.5">
               <div className="px-4 py-3 border-b border-gray-100">
@@ -211,24 +205,12 @@ export default function Navbar({ activePage, notifications = [], onNavigate, onC
 
               <button
                 onClick={() => {
-                  onNavigate('Admin Settings');
+                  onNavigate('Admin Account Settings');
                   setShowProfileMenu(false);
                 }}
                 className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
               >
-                <User className="w-4 h-4 text-gray-400" /> Admin Profile & Password
-              </button>
-
-              <div className="border-t border-gray-100 my-1"></div>
-
-              <button
-                onClick={() => {
-                  setShowProfileMenu(false);
-                  onLogout();
-                }}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-              >
-                <LogOut className="w-4 h-4 text-red-500" /> Log out
+                <User className="w-4 h-4 text-gray-400" /> Admin Account Settings
               </button>
             </div>
           )}
@@ -236,26 +218,20 @@ export default function Navbar({ activePage, notifications = [], onNavigate, onC
 
       </div>
 
-      {/* ========================================================== */}
-      {/* CLEAR ALL CONFIRMATION & IMPORTANT WARNING MODAL           */}
-      {/* ========================================================== */}
+      {/* Clear All Warning Modal */}
       {showClearConfirm && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl p-6 sm:p-8 w-full max-w-md shadow-2xl border border-gray-100 text-center animate-in zoom-in-95 duration-200">
-            
             <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-sm border border-amber-100">
               <ShieldAlert className="w-7 h-7" />
             </div>
-
             <h3 className="text-xl font-bold text-gray-900 mb-2">Clear All Notifications</h3>
-            
             <div className="bg-amber-50/70 border border-amber-200/60 rounded-2xl p-4 mb-6 text-left">
               <p className="text-[10px] font-bold tracking-wider text-amber-800 uppercase mb-1">Important Warning</p>
               <p className="text-xs text-amber-900/80 leading-relaxed">
                 Are you sure you want to clear all active alerts? This action will permanently remove all unacknowledged emergency and system notifications from the active log.
               </p>
             </div>
-
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -276,7 +252,6 @@ export default function Navbar({ activePage, notifications = [], onNavigate, onC
                 Confirm Clear
               </button>
             </div>
-
           </div>
         </div>
       )}

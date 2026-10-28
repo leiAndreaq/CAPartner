@@ -10,7 +10,7 @@ import ActivityLog from './components/ActivityLog';
 import Alerts from './components/Alerts';
 import Settings from './components/Settings';
 import AdminSettings from './components/AdminSettings';
-import { AlertTriangle, VideoOff, BatteryWarning, Radio } from 'lucide-react';
+import { AlertTriangle, VideoOff, BatteryWarning, Radio, X } from 'lucide-react';
 
 function App() {
   // ==========================================================
@@ -22,7 +22,7 @@ function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedAlertId, setSelectedAlertId] = useState(null);
 
-  // Shared Admin Profile State para sa Sidebar, Navbar, at AdminSettings
+  // Shared Admin Profile State
   const [adminProfile, setAdminProfile] = useState({
     name: 'Alex Mendoza',
     username: 'alex.admin',
@@ -31,15 +31,17 @@ function App() {
     avatar: null
   });
 
-  // Active SOS Alert state para sa floating banner
-  const [showSosAlert, setShowSosAlert] = useState(false);
+  // Dual SOS Alert States: Full-Screen Blurred Modal & Floating Banner
+  const [showCriticalModal, setShowCriticalModal] = useState(false);
+  const [showSosBanner, setShowSosBanner] = useState(false);
 
-  // Trigger para sa Active SOS Alert pagka-login
+  // Trigger para sa Critical Emergency Alerts: Lilitaw 5 seconds pagka-login
   useEffect(() => {
     if (isAuthenticated) {
       const timer = setTimeout(() => {
-        setShowSosAlert(true);
-      }, 1000);
+        setShowCriticalModal(true);
+        setShowSosBanner(true);
+      }, 5000); // 5 seconds delay
       return () => clearTimeout(timer);
     }
   }, [isAuthenticated]);
@@ -144,6 +146,8 @@ function App() {
     setActivePage('Overview');
     setSelectedAlertId(null);
     setIsSidebarOpen(false);
+    setShowCriticalModal(false);
+    setShowSosBanner(false);
   };
 
   // ==========================================================
@@ -186,6 +190,7 @@ function App() {
           alertBadgeCount={unacknowledgedCount > 0 ? unacknowledgedCount : null}
           onClose={() => setIsSidebarOpen(false)}
           adminProfile={adminProfile}
+          onLogout={handleLogout}
         />
       </aside>
 
@@ -217,25 +222,90 @@ function App() {
             />
           )}
           {activePage === 'Personnel Accounts' && <Settings onLogout={handleLogout} />}
-          {activePage === 'Admin Settings' && (
+          {activePage === 'Admin Account Settings' && (
             <AdminSettings adminProfile={adminProfile} setAdminProfile={setAdminProfile} />
           )}
         </div>
       </div>
 
       {/* ========================================================== */}
-      {/* RESPONSIVE ACTIVE SOS BANNER (Mobile & Desktop Optimized)    */}
+      {/* 1. FULL-SCREEN BLURRED CRITICAL EMERGENCY MODAL           */}
       {/* ========================================================== */}
-      {showSosAlert && (
-        <div className="fixed top-20 inset-x-4 sm:inset-x-auto sm:right-6 z-[100] sm:max-w-[420px] rounded-2xl shadow-2xl border-2 border-red-500 bg-white animate-in slide-in-from-top-5 duration-300 overflow-hidden">
+      {showCriticalModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border-2 border-red-500 overflow-hidden text-center animate-in zoom-in-95 duration-200">
+            
+            {/* Top Critical Header */}
+            <div className="bg-red-600 px-5 py-3 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping" />
+                <span className="text-[11px] font-black uppercase tracking-wider">CRITICAL EMERGENCY ALERT</span>
+              </div>
+              <span className="text-[10px] font-bold text-white/90">
+                {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6">
+              <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
+                <AlertTriangle className="w-8 h-8" />
+              </div>
+
+              <h3 className="text-xl font-black text-gray-900 mb-1">
+                CAP-01 — Ramon Dizon
+              </h3>
+              
+              <p className="text-xs text-gray-600 mb-6 bg-red-50 border border-red-100 p-3 rounded-2xl leading-relaxed font-medium">
+                Auto-detected emergency: abnormal heart rate (132 bpm) + irregular motion pattern detected in real-time.
+              </p>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowCriticalModal(false)}
+                  className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-700 font-bold text-xs hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  Dismiss
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCriticalModal(false);
+                    setShowSosBanner(false);
+                    handleNavigation('Alerts', 1);
+                  }}
+                  className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition-colors shadow-lg shadow-red-600/30 cursor-pointer"
+                >
+                  View in Alerts
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================== */}
+      {/* 2. FLOATING SOS NOTIFICATION BANNER (TOP RIGHT)            */}
+      {/* ========================================================== */}
+      {showSosBanner && !showCriticalModal && (
+        <div className="fixed top-20 inset-x-4 sm:inset-x-auto sm:right-6 z-[120] sm:max-w-[420px] rounded-2xl shadow-2xl border-2 border-red-500 bg-white animate-in slide-in-from-top-5 duration-300 overflow-hidden">
+          
           <div className="bg-[#d93636] px-3.5 sm:px-4 py-2 text-white flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
-              <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.12em]">ACTIVE SOS - UNACKNOWLEDGED</span>
+              <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.12em]">ACTIVE SOS — CRITICAL NOTIFICATION</span>
             </div>
-            <span className="text-[10px] font-bold text-white/90">
-              {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </span>
+            
+            <button
+              type="button"
+              onClick={() => setShowSosBanner(false)}
+              className="text-white/80 hover:text-white p-0.5 rounded-lg hover:bg-white/10 transition cursor-pointer"
+              aria-label="Close notification"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
 
           <div className="p-3.5 sm:p-4 bg-white text-gray-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -251,7 +321,7 @@ function App() {
             <button
               type="button"
               onClick={() => {
-                setShowSosAlert(false);
+                setShowSosBanner(false);
                 handleNavigation('Alerts', 1);
               }}
               className="w-full sm:w-auto shrink-0 rounded-xl bg-[#d93636] hover:bg-red-700 px-4 py-2 text-xs font-extrabold text-white transition shadow-md shadow-red-600/30 cursor-pointer text-center"
@@ -259,6 +329,7 @@ function App() {
               View in Alerts
             </button>
           </div>
+
         </div>
       )}
 
