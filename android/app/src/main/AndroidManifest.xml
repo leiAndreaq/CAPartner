@@ -1,8 +1,24 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Live view and recording on the Camera tab. -->
     <uses-permission android:name="android.permission.CAMERA"/>
-    <!-- Map tiles on the Map tab. -->
+    <!-- Sound on recorded clips. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <!-- The backend, and the map tiles on the Dashboard and Map tabs. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- The user's own position on the map, and with an SOS, while the app
+         is open. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- Finding the Smart Cap and receiving its readings over Bluetooth Low
+         Energy. Android 12 and up ask for the Nearby devices permission (the
+         scan is not used for location); older versions use the legacy pair,
+         and scanning there also needs the location permission above. -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
+    <uses-feature android:name="android.hardware.bluetooth" android:required="false"/>
     <application
         android:label="capartner"
         android:name="${applicationName}"

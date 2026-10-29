@@ -1,15 +1,22 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:latlong2/latlong.dart' show LatLng;
 
+import 'package:capartner/data/local_database.dart';
 import 'package:capartner/features/account/account_tab.dart';
 import 'package:capartner/features/account/edit_profile_screen.dart';
 import 'package:capartner/features/alerts/alerts_tab.dart';
 import 'package:capartner/features/auth/user_profile.dart';
 import 'package:capartner/features/camera/camera_tab.dart';
+import 'package:capartner/features/camera/recorded_clip.dart';
 import 'package:capartner/features/dashboard/dashboard_tab.dart';
+import 'package:capartner/features/dashboard/vitals.dart';
 import 'package:capartner/features/home/home_widgets.dart';
+import 'package:capartner/features/map/live_location.dart';
 import 'package:capartner/features/map/map_tab.dart';
+import 'package:capartner/features/sos/sos_screen.dart';
 import 'package:capartner/theme/app_colors.dart';
 import 'package:capartner/theme/app_text_styles.dart';
 
@@ -28,14 +35,21 @@ enum HomeTab {
 
 /// Home of the app once logged in and paired (Figma node 546:564).
 ///
-/// This is the frame around the tabs: header, status bar and tab bar. Readings
-/// and locations are fixed sample values until the cap sends real data.
+/// This is the frame around the tabs: header, status bar and tab bar. The
+/// user's position comes from [liveLocation]; the battery comes from the
+/// cap's readings.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
-    this.capName = 'CAP-001',
+    required this.capName,
     this.profile = const UserProfile(email: ''),
     this.onSos,
+    this.onSosSent,
+    this.vitals,
+    this.alerts,
+    this.liveLocation,
+    this.initialClips = const [],
+    this.onSaveClip,
     this.onSaveProfile,
     this.onChangePairing,
     this.onLogout,
@@ -46,7 +60,29 @@ class HomeScreen extends StatefulWidget {
 
   /// The logged-in user, as it was when the screen opened.
   final UserProfile profile;
+
+  /// Called when SOS is tapped; opens [SosScreen] when not given.
   final VoidCallback? onSos;
+
+  /// Called when an SOS is sent from [SosScreen]; returns the id of the
+  /// alert it stored, so the screen can follow the admin's answer in
+  /// [alerts].
+  final Future<String> Function()? onSosSent;
+
+  /// The cap's readings, kept up to date; none shown when not given.
+  final ValueListenable<Vitals>? vitals;
+
+  /// Alerts raised on this phone, newest first; none shown when not given.
+  final ValueListenable<List<AlertRecord>>? alerts;
+
+  /// The phone's GPS, followed while the screen is open.
+  final LiveLocation? liveLocation;
+
+  /// Clips stored from earlier, newest first.
+  final List<RecordedClip> initialClips;
+
+  /// Stores a just-recorded clip and returns it as stored.
+  final Future<RecordedClip> Function(RecordedClip clip)? onSaveClip;
   final SaveProfileCallback? onSaveProfile;
   final VoidCallback? onChangePairing;
   final VoidCallback? onLogout;
@@ -62,22 +98,102 @@ class _HomeScreenState extends State<HomeScreen> {
   /// How far the camera button sticks out above the tab bar.
   static const double _cameraButtonRise = 21;
 
-  // Sample readings.
-  static const String _location = 'Vicas Market, Camarin Road';
-  static const int _capBattery = 70;
+  Vitals get _vitals => widget.vitals?.value ?? Vitals.empty;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.vitals?.addListener(_onDataChanged);
+    widget.alerts?.addListener(_onDataChanged);
+    widget.liveLocation?.fix.addListener(_onDataChanged);
+    widget.liveLocation?.problem.addListener(_onDataChanged);
+    final location = widget.liveLocation;
+    if (location != null) {
+      location.start();
+      // Tries again on coming back to the app, e.g. from the settings where
+      // the user switched location on.
+      _lifecycle = AppLifecycleListener(
+        onResume: () {
+          if (location.problem.value != null) location.start();
+        },
+      );
+    }
+  }
+
+  AppLifecycleListener? _lifecycle;
+
+  @override
+  void dispose() {
+    widget.vitals?.removeListener(_onDataChanged);
+    widget.alerts?.removeListener(_onDataChanged);
+    widget.liveLocation?.fix.removeListener(_onDataChanged);
+    widget.liveLocation?.problem.removeListener(_onDataChanged);
+    widget.liveLocation?.stop();
+    _lifecycle?.dispose();
+    super.dispose();
+  }
+
+  void _onDataChanged() => setState(() {});
+
+  int? get _capBattery => _vitals.batteryPct;
+
+  String get _batteryText => _capBattery == null ? '--' : '$_capBattery%';
+
+  LocationFix? get _fix => widget.liveLocation?.fix.value;
+
+  /// Null until the phone has a fix.
+  LatLng? get _position => _fix?.position;
+
+  String get _location {
+    final fix = _fix;
+    if (fix == null) {
+      final location = widget.liveLocation;
+      if (location == null) return 'Location unavailable';
+      return location.problem.value == null
+          ? 'Finding you…'
+          : 'Location unavailable';
+    }
+    return fix.address ??
+        '${fix.position.latitude.toStringAsFixed(5)}, '
+            '${fix.position.longitude.toStringAsFixed(5)}';
+  }
 
   HomeTab _tab = HomeTab.dashboard;
+
+  /// Clips from the Camera tab, newest first, kept while the app is open.
+  late final List<RecordedClip> _clips = [...widget.initialClips];
+
+  Future<void> _addClip(RecordedClip clip) async {
+    final saved = await widget.onSaveClip?.call(clip) ?? clip;
+    if (mounted) setState(() => _clips.insert(0, saved));
+  }
+
   late UserProfile _profile = widget.profile;
 
-  String? _saveProfile(UserProfile profile, String? newPassword) {
-    final rejection = widget.onSaveProfile?.call(profile, newPassword);
-    if (rejection == null) setState(() => _profile = profile);
+  Future<String?> _saveProfile(
+    UserProfile profile,
+    PasswordChange? passwordChange,
+  ) async {
+    final rejection = await widget.onSaveProfile?.call(profile, passwordChange);
+    if (rejection == null && mounted) setState(() => _profile = profile);
     return rejection;
   }
 
+  void _openSos() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (_) => SosScreen(
+          location: _location,
+          onSend: widget.onSosSent,
+          alerts: widget.alerts,
+        ),
+      ),
+    );
+  }
+
   /// ID line of the user's own cap.
-  String get _capId =>
-      '${widget.capName.replaceAll('-', ' ')} - PSTMD-2026-084';
+  String get _capId => widget.capName.replaceAll('-', ' ');
 
   String get _greeting {
     final hour = DateTime.now().hour;
@@ -110,14 +226,21 @@ class _HomeScreenState extends State<HomeScreen> {
                         bottom: _tabBarHeight + bottomInset + 27,
                       ),
                       child: DashboardTab(
+                        vitals: _vitals,
                         statusBar: _buildStatusBar(),
                         location: _location,
-                        onSos: widget.onSos,
+                        position: _position,
+                        onSos: widget.onSos ?? _openSos,
+                        onOpenMap: () => setState(() => _tab = HomeTab.map),
                       ),
                     ),
                     HomeTab.map => MapTab(
                       statusBar: _buildStatusBar(),
                       capId: _capId,
+                      position: _position,
+                      location: _location,
+                      locationProblem: widget.liveLocation?.problem.value,
+                      onFixLocation: widget.liveLocation?.fixProblem,
                       bottomPadding: _tabBarHeight + bottomInset,
                     ),
                     HomeTab.camera => SingleChildScrollView(
@@ -127,9 +250,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: CameraTab(
                         statusBar: _buildStatusBar(),
                         location: _location,
+                        clips: _clips,
+                        onClipRecorded: _addClip,
                       ),
                     ),
                     HomeTab.alerts => AlertsTab(
+                      alerts: widget.alerts?.value,
                       statusBar: _buildStatusBar(),
                       bottomPadding: _tabBarHeight + bottomInset,
                     ),
@@ -143,6 +269,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         capName: widget.capName,
                         capId: _capId,
                         capBattery: _capBattery,
+                        capConnected: _vitals.hasReadings,
                         onSaveProfile: _saveProfile,
                         onChangePairing: widget.onChangePairing,
                         onLogout: widget.onLogout,
@@ -261,21 +388,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(width: 5),
           StatusChip(
-            label: 'CONNECTED',
-            background: const Color(0x662AD400),
-            foreground: AppColors.darkGreen,
-          ),
-          const SizedBox(width: 20),
-          Image.asset(
-            'assets/images/cellular_network.png',
-            width: 20,
-            height: 20,
-          ),
-          const SizedBox(width: 3),
-          StatusChip(
-            label: 'DISCONNECTED',
-            background: const Color(0x66FF4343),
-            foreground: const Color(0xFF3D0505),
+            label: _vitals.hasReadings ? 'CONNECTED' : 'NO DATA',
+            background: _vitals.hasReadings
+                ? const Color(0x662AD400)
+                : const Color(0x66FF4343),
+            foreground: _vitals.hasReadings
+                ? AppColors.darkGreen
+                : const Color(0xFF3D0505),
           ),
           const SizedBox(width: 24),
           Image.asset('assets/images/battery.png', width: 20, height: 20),
@@ -289,7 +408,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildBatteryBar() {
     const amber = Color(0xFFE2A600);
     return Semantics(
-      label: 'Cap battery $_capBattery%',
+      label: 'Cap battery $_batteryText',
       child: ExcludeSemantics(
         child: Container(
           width: 79,
@@ -302,7 +421,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Stack(
             children: [
               FractionallySizedBox(
-                widthFactor: _capBattery / 100,
+                widthFactor: (_capBattery ?? 0) / 100,
                 heightFactor: 1,
                 child: Container(
                   decoration: BoxDecoration(
@@ -313,7 +432,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               Center(
                 child: Text(
-                  '$_capBattery%',
+                  _batteryText,
                   style: appTextStyle(
                     fontSize: 8,
                     weight: FontWeight.w700,

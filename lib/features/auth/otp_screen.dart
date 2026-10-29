@@ -1,42 +1,55 @@
 import 'package:flutter/material.dart';
 
-import 'package:capartner/features/auth/widgets/auth_widgets.dart';
 import 'package:capartner/features/auth/widgets/otp_form.dart';
+import 'package:capartner/features/auth/widgets/verification_layout.dart';
 
-/// OTP verification screen (Figma node 528:43).
+/// OTP verification screen, the second step of Forgot Password, also used to
+/// confirm a password change.
 ///
-/// [onVerify] is called with the code once all six digits are entered, and
-/// [onResend] when the user asks for a new code. Checking the code is left to
-/// the caller.
+/// [onVerify] checks the code once all six digits are entered, and [onResend]
+/// asks for a new one; each returns the message to show when it fails.
 class OtpScreen extends StatelessWidget {
   const OtpScreen({
     super.key,
     this.onVerify,
     this.onResend,
-    this.title = 'OTP Verification',
+    this.email,
+    this.title = 'Forgot Password',
+    this.step = 1,
   });
 
-  /// Header title; the Forgot Password flow (Figma node 635:1930) shows its
-  /// own name here.
+  /// Title of the flow this step belongs to.
   final String title;
 
-  final ValueChanged<String>? onVerify;
-  final VoidCallback? onResend;
+  /// Index in the step bar; null for no step bar.
+  final int? step;
+
+  /// Where the code was sent, shown under the heading when known.
+  final String? email;
+
+  final Future<String?> Function(String code)? onVerify;
+  final Future<String?> Function()? onResend;
 
   @override
   Widget build(BuildContext context) {
-    return AuthScaffold(
+    return VerificationScaffold(
       title: title,
-      titleTop: 40,
-      titleLeftInset: 43,
       iconAsset: 'assets/images/mobile_email.png',
-      iconSize: 90,
       heading: 'Verify Your Email',
-      subheading: 'Enter the 6-digit code sent to your email.',
+      subheading: email == null
+          ? 'Enter the 6-digit code sent to your email.'
+          : 'Enter the 6-digit code we sent to',
+      subheadingEmphasis: email,
+      step: step,
       children: [
-        const SizedBox(height: 37),
+        const VerificationLabel('Verification code'),
+        const SizedBox(height: 8),
         OtpForm(onVerify: onVerify, onResend: onResend),
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
+        const VerificationNote(
+          icon: Icons.mark_email_unread_outlined,
+          text: "Can't find it? Check your spam folder.",
+        ),
       ],
     );
   }

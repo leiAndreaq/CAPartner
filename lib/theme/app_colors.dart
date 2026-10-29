@@ -17,6 +17,9 @@ abstract final class AppColors {
   static const Color outline = Color(0xFFDFE3DF);
   static const Color surfaceGrey = Color(0xFFF7F8F7);
 
+  /// Cap battery and readings that need attention.
+  static const Color amber = Color(0xFFE2A600);
+
   /// Validation messages; the Figma file has no error colour yet.
   static const Color error = Color(0xFFB3261E);
 }

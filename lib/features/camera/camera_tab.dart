@@ -1,27 +1,32 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import 'package:capartner/features/camera/clip_player_screen.dart';
+import 'package:capartner/features/camera/recorded_clip.dart';
 import 'package:capartner/theme/app_colors.dart';
 import 'package:capartner/theme/app_text_styles.dart';
-
-/// A video recorded during this session.
-class _Clip {
-  const _Clip({required this.path, required this.recordedAt});
-
-  final String path;
-  final DateTime recordedAt;
-}
 
 /// Camera tab (Figma node 546:636).
 ///
 /// The live view is the phone's own camera. The round button starts and stops
-/// a video recording; finished clips are listed below the view for the rest
-/// of the session.
+/// a video recording with sound, up to [maxClipLength]; finished clips are
+/// listed below the view and play full screen when tapped.
 class CameraTab extends StatefulWidget {
-  const CameraTab({super.key, required this.statusBar, required this.location});
+  const CameraTab({
+    super.key,
+    required this.statusBar,
+    required this.location,
+    this.clips = const [],
+    this.onClipRecorded,
+  });
+
+  /// Longest a single clip can run; recording stops by itself at this point.
+  static const Duration maxClipLength = Duration(minutes: 1);
 
   /// Connection status pill shown at the top.
   final Widget statusBar;
@@ -29,13 +34,22 @@ class CameraTab extends StatefulWidget {
   /// Where the user is, shown under the title.
   final String location;
 
+  /// Clips recorded so far, newest first. They are kept by the home screen so
+  /// they survive switching tabs.
+  final List<RecordedClip> clips;
+
+  /// Called with each finished clip.
+  final ValueChanged<RecordedClip>? onClipRecorded;
+
   @override
   State<CameraTab> createState() => _CameraTabState();
 }
 
-class _CameraTabState extends State<CameraTab> with WidgetsBindingObserver {
+class _CameraTabState extends State<CameraTab>
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   // Sizes below are taken from the 390x844 Figma frame.
   static const double _viewHeight = 352.68;
+  static const Color _recordRed = Color(0xFFD32F2F);
 
   List<CameraDescription> _cameras = const [];
   int _cameraIndex = 0;
@@ -44,14 +58,29 @@ class _CameraTabState extends State<CameraTab> with WidgetsBindingObserver {
   /// Why there is no live view, when the camera could not be opened.
   String? _error;
 
+  /// Set when the microphone was refused, so clips are recorded silently.
+  bool _micDenied = false;
+
   /// Guards against tapping a button again while the camera is still busy.
   bool _busy = false;
 
-  Timer? _recordTimer;
-  int _recordedSeconds = 0;
-  final List<_Clip> _clips = [];
+  /// Runs from 0 to 1 over [CameraTab.maxClipLength] while recording, and
+  /// stops the recording when it gets to the end.
+  late final AnimationController _clipProgress =
+      AnimationController(vsync: this, duration: CameraTab.maxClipLength)
+        ..addStatusListener((status) {
+          if (status == AnimationStatus.completed) {
+            _stopRecording(reachedLimit: true);
+          }
+        });
+
+  /// Shown briefly over the live view after a clip is saved.
+  String? _notice;
+  Timer? _noticeTimer;
 
   bool get _isRecording => _controller?.value.isRecordingVideo ?? false;
+
+  Duration get _elapsed => CameraTab.maxClipLength * _clipProgress.value;
 
   @override
   void initState() {
@@ -63,8 +92,29 @@ class _CameraTabState extends State<CameraTab> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _recordTimer?.cancel();
-    _controller?.dispose();
+    _noticeTimer?.cancel();
+    final controller = _controller;
+    if (controller != null && controller.value.isRecordingVideo) {
+      // Leaving the tab mid-recording still keeps the clip.
+      final length = _elapsed;
+      final onClipRecorded = widget.onClipRecorded;
+      controller
+          .stopVideoRecording()
+          .then(
+            (file) => onClipRecorded?.call(
+              RecordedClip(
+                path: file.path,
+                recordedAt: DateTime.now(),
+                length: length,
+              ),
+            ),
+          )
+          .catchError((Object _) {})
+          .whenComplete(controller.dispose);
+    } else {
+      controller?.dispose();
+    }
+    _clipProgress.dispose();
     super.dispose();
   }
 
@@ -73,12 +123,19 @@ class _CameraTabState extends State<CameraTab> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (_cameras.isEmpty) return;
     if (state == AppLifecycleState.inactive) {
-      _recordTimer?.cancel();
-      _controller?.dispose();
-      setState(() => _controller = null);
+      _release();
     } else if (state == AppLifecycleState.resumed && _controller == null) {
       _open(_cameraIndex);
     }
+  }
+
+  Future<void> _release() async {
+    // A clip being recorded is saved rather than lost.
+    await _stopRecording();
+    final controller = _controller;
+    if (controller == null || !mounted) return;
+    setState(() => _controller = null);
+    await controller.dispose();
   }
 
   Future<void> _setUp() async {
@@ -101,11 +158,11 @@ class _CameraTabState extends State<CameraTab> with WidgetsBindingObserver {
 
   Future<void> _open(int index) async {
     final previous = _controller;
-    // Audio is off so only the camera permission is asked for.
+    // Clips have sound unless the microphone was refused.
     final controller = CameraController(
       _cameras[index],
       ResolutionPreset.high,
-      enableAudio: false,
+      enableAudio: !_micDenied,
     );
     setState(() {
       _controller = null;
@@ -116,6 +173,13 @@ class _CameraTabState extends State<CameraTab> with WidgetsBindingObserver {
       await controller.initialize();
     } catch (error) {
       await controller.dispose();
+      if (error is CameraException &&
+          error.code.startsWith('Audio') &&
+          !_micDenied) {
+        // Without the microphone the camera still works; record silently.
+        _micDenied = true;
+        return _open(index);
+      }
       _showError(error);
       return;
     }
@@ -149,45 +213,74 @@ class _CameraTabState extends State<CameraTab> with WidgetsBindingObserver {
     _busy = false;
   }
 
-  Future<void> _toggleRecording() async {
+  Future<void> _toggleRecording() =>
+      _isRecording ? _stopRecording() : _startRecording();
+
+  Future<void> _startRecording() async {
     final controller = _controller;
-    if (_busy || controller == null) return;
+    if (_busy || controller == null || controller.value.isRecordingVideo) {
+      return;
+    }
     _busy = true;
     try {
-      if (controller.value.isRecordingVideo) {
-        _recordTimer?.cancel();
-        final file = await controller.stopVideoRecording();
-        if (!mounted) return;
-        setState(
-          () => _clips.insert(
-            0,
-            _Clip(path: file.path, recordedAt: DateTime.now()),
-          ),
-        );
-      } else {
-        await controller.startVideoRecording();
-        if (!mounted) return;
-        setState(() => _recordedSeconds = 0);
-        _recordTimer = Timer.periodic(
-          const Duration(seconds: 1),
-          (_) => setState(() => _recordedSeconds++),
-        );
-      }
+      await controller.startVideoRecording();
+      if (!mounted) return;
+      HapticFeedback.mediumImpact();
+      _clipProgress.forward(from: 0);
+      setState(() {});
     } catch (error) {
-      _recordTimer?.cancel();
       _showError(error);
     } finally {
       _busy = false;
     }
   }
 
-  static String _twoDigits(int value) => value.toString().padLeft(2, '0');
+  /// Stops and keeps the clip; [reachedLimit] when the time ran out.
+  Future<void> _stopRecording({bool reachedLimit = false}) async {
+    final controller = _controller;
+    if (_busy || controller == null || !controller.value.isRecordingVideo) {
+      return;
+    }
+    _busy = true;
+    final length = reachedLimit ? CameraTab.maxClipLength : _elapsed;
+    _clipProgress.stop();
+    try {
+      final file = await controller.stopVideoRecording();
+      widget.onClipRecorded?.call(
+        RecordedClip(
+          path: file.path,
+          recordedAt: DateTime.now(),
+          length: length,
+        ),
+      );
+      if (!mounted) return;
+      HapticFeedback.mediumImpact();
+      _clipProgress.value = 0;
+      _showNotice(
+        reachedLimit
+            ? '1 minute limit reached · clip saved'
+            : 'Clip saved · ${formatClipLength(length)}',
+      );
+    } catch (error) {
+      _clipProgress.value = 0;
+      _showError(error);
+    } finally {
+      _busy = false;
+    }
+  }
 
-  /// Time of day as shown on a clip, e.g. "09:51 AM".
-  static String _formatTime(DateTime time) {
-    final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
-    final period = time.hour < 12 ? 'AM' : 'PM';
-    return '${_twoDigits(hour)}:${_twoDigits(time.minute)} $period';
+  void _showNotice(String message) {
+    _noticeTimer?.cancel();
+    setState(() => _notice = message);
+    _noticeTimer = Timer(const Duration(milliseconds: 2500), () {
+      if (mounted) setState(() => _notice = null);
+    });
+  }
+
+  void _play(RecordedClip clip) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => ClipPlayerScreen(clip: clip)),
+    );
   }
 
   @override
@@ -250,16 +343,54 @@ class _CameraTabState extends State<CameraTab> with WidgetsBindingObserver {
           padding: const EdgeInsets.only(left: 40, right: 35),
           child: _buildLiveView(),
         ),
-        if (_clips.isNotEmpty) ...[
-          const SizedBox(height: 23),
+        if (widget.clips.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 41),
+            child: Row(
+              children: [
+                Text(
+                  'RECENT CLIPS',
+                  style: appTextStyle(
+                    fontSize: 11,
+                    lineHeight: 16,
+                    weight: FontWeight.w800,
+                    color: AppColors.darkGreen,
+                    letterSpacing: 1,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '${widget.clips.length}',
+                  style: appTextStyle(
+                    fontSize: 11,
+                    lineHeight: 16,
+                    weight: FontWeight.w700,
+                    color: AppColors.mutedText,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  'Tap to play',
+                  style: appTextStyle(
+                    fontSize: 11,
+                    lineHeight: 16,
+                    weight: FontWeight.w600,
+                    color: AppColors.mutedText,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
           SizedBox(
             height: 64,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 41),
-              itemCount: _clips.length,
+              itemCount: widget.clips.length,
               separatorBuilder: (_, _) => const SizedBox(width: 10),
-              itemBuilder: (_, index) => _buildClip(_clips[index]),
+              itemBuilder: (_, index) => _buildClip(widget.clips[index]),
             ),
           ),
         ],
@@ -346,6 +477,14 @@ class _CameraTabState extends State<CameraTab> with WidgetsBindingObserver {
               ),
             ),
           Positioned(left: 16, top: 16, child: _buildViewLabel()),
+          Positioned(right: 16, top: 16, child: _buildLimitChip()),
+          if (_notice != null)
+            Positioned(
+              left: 16,
+              right: 16,
+              top: 56,
+              child: Center(child: _buildNotice(_notice!)),
+            ),
           Positioned(left: 34, bottom: 34, child: _buildSwitchButton()),
           Positioned(
             left: 0,
@@ -374,34 +513,119 @@ class _CameraTabState extends State<CameraTab> with WidgetsBindingObserver {
   }
 
   Widget _buildViewLabel() {
-    final minutes = _twoDigits(_recordedSeconds ~/ 60);
-    final seconds = _twoDigits(_recordedSeconds % 60);
+    return AnimatedBuilder(
+      animation: _clipProgress,
+      builder: (_, _) {
+        final recording = _isRecording;
+        final elapsed = _elapsed;
+        // The dot blinks while recording.
+        final dotOn = !recording || (elapsed.inMilliseconds ~/ 500).isEven;
+        return Container(
+          height: 28.5,
+          padding: const EdgeInsets.only(left: 12, right: 16),
+          decoration: BoxDecoration(
+            color: const Color(0x8C000000),
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Row(
+            children: [
+              AnimatedOpacity(
+                opacity: dotOn ? 1 : 0.2,
+                duration: const Duration(milliseconds: 150),
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: _recordRed,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                recording
+                    ? 'REC ${formatClipLength(elapsed)} / '
+                          '${formatClipLength(CameraTab.maxClipLength)}'
+                    : 'Live view',
+                style: appTextStyle(
+                  fontSize: 11,
+                  weight: FontWeight.w800,
+                  color: AppColors.white,
+                  letterSpacing: 1.1,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
+  /// The clip length limit, and whether sound is being recorded.
+  Widget _buildLimitChip() {
     return Container(
       height: 28.5,
-      padding: const EdgeInsets.only(left: 12, right: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
         color: const Color(0x8C000000),
         borderRadius: BorderRadius.circular(15),
       ),
       child: Row(
         children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: const BoxDecoration(
-              color: Color(0xFFD32F2F),
-              shape: BoxShape.circle,
-            ),
+          Icon(
+            _micDenied ? Icons.mic_off_rounded : Icons.mic_rounded,
+            size: 14,
+            color: AppColors.white,
+            semanticLabel: _micDenied ? 'Sound off' : 'Sound on',
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           Text(
-            _isRecording ? 'REC $minutes:$seconds' : 'Live view',
+            'MAX 1:00',
             style: appTextStyle(
-              fontSize: 11,
+              fontSize: 10,
               weight: FontWeight.w800,
               color: AppColors.white,
-              letterSpacing: 1.1,
+              letterSpacing: 0.8,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotice(String message) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x33000000),
+            offset: Offset(0, 4),
+            blurRadius: 12,
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.check_circle_rounded,
+            size: 16,
+            color: AppColors.green,
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              message,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: appTextStyle(
+                fontSize: 12,
+                weight: FontWeight.w700,
+                color: AppColors.ink,
+              ),
             ),
           ),
         ],
@@ -453,36 +677,59 @@ class _CameraTabState extends State<CameraTab> with WidgetsBindingObserver {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: _toggleRecording,
-        child: Container(
-          width: 76,
-          height: 76,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            shape: BoxShape.circle,
-            border: Border.all(color: AppColors.ink, width: 5),
+        child: AnimatedBuilder(
+          animation: _clipProgress,
+          // The time used so far fills the button's ring in red.
+          builder: (_, child) => CustomPaint(
+            foregroundPainter: _RingPainter(
+              progress: _clipProgress.value,
+              color: _recordRed,
+            ),
+            child: child,
           ),
-          child: _isRecording
-              // The Figma file only has the idle state of this button.
-              ? Container(
-                  width: 26,
-                  height: 26,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD32F2F),
-                    borderRadius: BorderRadius.circular(6),
+          child: Container(
+            width: 76,
+            height: 76,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.ink, width: 5),
+            ),
+            child: _isRecording
+                // The Figma file only has the idle state of this button.
+                ? Container(
+                    width: 26,
+                    height: 26,
+                    decoration: BoxDecoration(
+                      color: _recordRed,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  )
+                : SvgPicture.asset(
+                    'assets/icons/shutter.svg',
+                    width: 52,
+                    height: 52,
                   ),
-                )
-              : SvgPicture.asset(
-                  'assets/icons/shutter.svg',
-                  width: 52,
-                  height: 52,
-                ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildClip(_Clip clip) {
+  Widget _buildClip(RecordedClip clip) {
+    return Semantics(
+      button: true,
+      label: 'Play clip from ${formatClipTime(clip.recordedAt)}',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => _play(clip),
+        child: ExcludeSemantics(child: _buildClipTile(clip)),
+      ),
+    );
+  }
+
+  Widget _buildClipTile(RecordedClip clip) {
     return Container(
       width: 64,
       height: 64,
@@ -494,6 +741,18 @@ class _CameraTabState extends State<CameraTab> with WidgetsBindingObserver {
       ),
       child: Stack(
         children: [
+          Positioned(
+            right: 4,
+            top: 4,
+            child: Text(
+              formatClipLength(clip.length),
+              style: appTextStyle(
+                fontSize: 8,
+                weight: FontWeight.w700,
+                color: AppColors.white.withValues(alpha: 0.85),
+              ),
+            ),
+          ),
           Positioned.fill(
             bottom: 17.5,
             child: Center(
@@ -513,7 +772,7 @@ class _CameraTabState extends State<CameraTab> with WidgetsBindingObserver {
               color: const Color(0x8C000000),
               alignment: Alignment.center,
               child: Text(
-                _formatTime(clip.recordedAt),
+                formatClipTime(clip.recordedAt),
                 maxLines: 1,
                 style: appTextStyle(
                   fontSize: 9,
@@ -527,4 +786,35 @@ class _CameraTabState extends State<CameraTab> with WidgetsBindingObserver {
       ),
     );
   }
+}
+
+/// A ring drawn over the record button's border, filled clockwise from the
+/// top as [progress] goes from 0 to 1.
+class _RingPainter extends CustomPainter {
+  const _RingPainter({required this.progress, required this.color});
+
+  final double progress;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (progress == 0) return;
+    const strokeWidth = 5.0;
+    final rect = (Offset.zero & size).deflate(strokeWidth / 2);
+    canvas.drawArc(
+      rect,
+      -math.pi / 2,
+      2 * math.pi * progress,
+      false,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_RingPainter oldDelegate) =>
+      oldDelegate.progress != progress || oldDelegate.color != color;
 }

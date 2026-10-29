@@ -1,18 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:latlong2/latlong.dart' show LatLng;
 
+import 'package:capartner/features/dashboard/vital_detail_screen.dart';
+import 'package:capartner/features/dashboard/vitals.dart';
+import 'package:capartner/features/map/location_preview_map.dart';
 import 'package:capartner/theme/app_colors.dart';
 import 'package:capartner/theme/app_text_styles.dart';
 
-/// Dashboard tab (Figma node 546:564): the cap's latest readings.
+/// Dashboard tab: the cap's latest readings, in the style of the pairing
+/// screens: the overall status, the heart rate on dark green, then the other
+/// readings on light cards. Each reading opens its own detail screen.
 ///
-/// The readings are fixed sample values until the cap sends real data.
+/// A reading shows as "--" until the cap sends it.
 class DashboardTab extends StatelessWidget {
   const DashboardTab({
     super.key,
     required this.statusBar,
     required this.location,
+    required this.position,
+    this.vitals = Vitals.empty,
     this.onSos,
+    this.onOpenMap,
   });
 
   /// Connection status pill shown at the top.
@@ -20,19 +29,22 @@ class DashboardTab extends StatelessWidget {
 
   /// Where the user is, shown on the location card.
   final String location;
+
+  /// Where the user is, shown on the location card's map.
+  final LatLng? position;
+
+  final Vitals vitals;
   final VoidCallback? onSos;
 
-  // Sizes below are taken from the 390x844 Figma frame.
-  static const double _horizontalPadding = 21;
+  /// Called when the location card is tapped, to show the full map.
+  final VoidCallback? onOpenMap;
+
+  static const double _horizontalPadding = 20;
+  static const double _cardRadius = 20;
 
   static const List<BoxShadow> _cardShadow = [
-    BoxShadow(color: Color(0x401A1A1A), offset: Offset(0, 8), blurRadius: 12),
-    BoxShadow(color: Color(0x0F1A1A1A), offset: Offset(0, 1), blurRadius: 1),
+    BoxShadow(color: Color(0x141A1A1A), offset: Offset(0, 6), blurRadius: 16),
   ];
-
-  // Sample readings.
-  static const int _heartRate = 80;
-  static const double _bodyTemperature = 38.3;
 
   @override
   Widget build(BuildContext context) {
@@ -40,47 +52,79 @@ class DashboardTab extends StatelessWidget {
       children: [
         const SizedBox(height: 10),
         statusBar,
-        const SizedBox(height: 13),
         Padding(
-          padding: const EdgeInsets.only(left: 24, right: 30),
-          child: SizedBox(
-            height: 40,
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'DASHBOARD',
-                    style: appTextStyle(
-                      fontSize: 20,
-                      weight: FontWeight.w900,
-                      color: AppColors.darkGreen,
-                    ),
-                  ),
-                ),
-                _buildSosButton(),
-              ],
-            ),
+          padding: const EdgeInsets.fromLTRB(
+            _horizontalPadding,
+            20,
+            _horizontalPadding,
+            0,
           ),
-        ),
-        const SizedBox(height: 13),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: _horizontalPadding),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildHeartRateCard(),
-              const SizedBox(height: 35),
-              Row(
-                spacing: 16,
-                children: [
-                  Expanded(child: _buildTemperatureCard()),
-                  Expanded(child: _buildMotionCard()),
-                ],
+              _buildTitleRow(),
+              const SizedBox(height: 16),
+              _buildSummaryBanner(),
+              const SizedBox(height: 16),
+              _buildHeartRateCard(context),
+              const SizedBox(height: 16),
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  spacing: 12,
+                  children: [
+                    Expanded(child: _buildTemperatureCard(context)),
+                    Expanded(child: _buildMotionCard(context)),
+                  ],
+                ),
               ),
-              const SizedBox(height: 22),
+              const SizedBox(height: 16),
               _buildLocationCard(),
             ],
           ),
         ),
+      ],
+    );
+  }
+
+  void _open(BuildContext context, Widget screen) {
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => screen));
+  }
+
+  Widget _buildTitleRow() {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'DASHBOARD',
+                style: appTextStyle(
+                  fontSize: 20,
+                  lineHeight: 26,
+                  weight: FontWeight.w900,
+                  color: AppColors.darkGreen,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Live readings from your Smart Cap',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: appTextStyle(
+                  fontSize: 13,
+                  lineHeight: 18,
+                  weight: FontWeight.w500,
+                  color: AppColors.mutedText,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        _buildSosButton(),
       ],
     );
   }
@@ -93,17 +137,21 @@ class DashboardTab extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         onTap: onSos,
         child: Container(
-          width: 40,
-          height: 40,
+          width: 56,
+          height: 56,
           alignment: Alignment.center,
-          decoration: const BoxDecoration(
-            color: Color(0xFFFF0004),
+          decoration: BoxDecoration(
+            color: AppColors.red,
             shape: BoxShape.circle,
+            border: Border.all(
+              color: AppColors.white.withValues(alpha: 0.6),
+              width: 3,
+            ),
             boxShadow: [
               BoxShadow(
-                color: Color(0x40000000),
-                offset: Offset(0, 4),
-                blurRadius: 4,
+                color: AppColors.red.withValues(alpha: 0.35),
+                offset: const Offset(0, 6),
+                blurRadius: 14,
               ),
             ],
           ),
@@ -111,9 +159,10 @@ class DashboardTab extends StatelessWidget {
             child: Text(
               'SOS',
               style: appTextStyle(
-                fontSize: 14,
-                weight: FontWeight.w800,
+                fontSize: 15,
+                weight: FontWeight.w900,
                 color: AppColors.white,
+                letterSpacing: 0.5,
               ),
             ),
           ),
@@ -122,374 +171,557 @@ class DashboardTab extends StatelessWidget {
     );
   }
 
-  Widget _buildCard({required double height, required List<Widget> children}) {
+  /// The wearer's overall status and why.
+  Widget _buildSummaryBanner() {
+    final status = vitals.overall;
     return Container(
-      height: height,
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: _cardShadow,
-      ),
-      child: Stack(children: children),
-    );
-  }
-
-  Widget _buildHeartRateCard() {
-    return _buildCard(
-      height: 244,
-      children: [
-        Positioned(
-          left: 37,
-          top: 25,
-          child: Row(
-            children: [
-              SvgPicture.asset('assets/icons/heart.svg', width: 20, height: 20),
-              const SizedBox(width: 8),
-              Text(
-                'Heart Rate',
-                style: appTextStyle(
-                  fontSize: 13,
-                  lineHeight: 19.5,
-                  weight: FontWeight.w800,
-                  color: AppColors.green,
-                  letterSpacing: 1.3,
-                ),
-              ),
-            ],
-          ),
+        color: status.color.withValues(alpha: 0.08),
+        border: Border.all(
+          color: status.color.withValues(alpha: 0.35),
+          width: 1.5,
         ),
-        Positioned(
-          right: 21,
-          top: 22,
-          child: Container(
-            height: 30,
-            padding: const EdgeInsets.only(left: 12, right: 20),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: AppColors.mint,
-              borderRadius: BorderRadius.circular(15),
+              color: status.color,
+              shape: BoxShape.circle,
             ),
-            child: Row(
+            child: Icon(status.icon, size: 24, color: AppColors.white),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: AppColors.green.withValues(alpha: 0.55),
-                    shape: BoxShape.circle,
+                Text(
+                  'OVERALL STATUS',
+                  style: appTextStyle(
+                    fontSize: 10,
+                    lineHeight: 14,
+                    weight: FontWeight.w800,
+                    color: AppColors.mutedText,
+                    letterSpacing: 1,
                   ),
                 ),
-                const SizedBox(width: 9),
                 Text(
-                  'Normal',
+                  status.label,
+                  style: appTextStyle(
+                    fontSize: 18,
+                    lineHeight: 24,
+                    weight: FontWeight.w900,
+                    color: AppColors.ink,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  vitals.overallReason,
                   style: appTextStyle(
                     fontSize: 12,
-                    weight: FontWeight.w900,
-                    color: AppColors.green,
-                    letterSpacing: 0.3,
+                    lineHeight: 16,
+                    weight: FontWeight.w500,
+                    color: AppColors.bodyText,
                   ),
                 ),
               ],
             ),
           ),
-        ),
-        Positioned(
-          left: 22,
-          top: 64,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '$_heartRate',
-                style: appTextStyle(
-                  fontSize: 76,
-                  lineHeight: 76,
-                  weight: FontWeight.w900,
-                  color: AppColors.ink,
-                  letterSpacing: -3.8,
-                ),
-              ),
-              const SizedBox(width: 20),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Text(
-                  'BPM',
-                  style: appTextStyle(
-                    fontSize: 19,
-                    lineHeight: 28.5,
-                    weight: FontWeight.w800,
-                    color: const Color(0xFF5F6660),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        Positioned(
-          left: 27,
-          right: 31,
-          top: 147,
-          height: 48,
-          child: SvgPicture.asset('assets/icons/ecg.svg', fit: BoxFit.fill),
-        ),
-        Positioned(
-          left: 12,
-          right: 12,
-          top: 207,
-          child: Text(
-            'Resting range 60–100 · updated 2s ago',
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: appTextStyle(
-              fontSize: 13,
-              lineHeight: 19.5,
-              weight: FontWeight.w600,
-              color: AppColors.bodyText,
-            ),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _buildTemperatureCard() {
-    return _buildCard(
-      height: 138,
-      children: [
-        Positioned(
-          left: 22,
-          top: 19,
-          child: SvgPicture.asset(
-            'assets/icons/thermometer.svg',
-            width: 8.8,
-            height: 17.6,
-          ),
+  /// Rounded, tappable surface with a ripple.
+  Widget _buildTappable({
+    required String label,
+    required Color color,
+    required double radius,
+    required VoidCallback onTap,
+    required Widget child,
+    List<BoxShadow>? shadow,
+    BoxBorder? border,
+  }) {
+    return Semantics(
+      button: true,
+      label: label,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(radius),
+          boxShadow: shadow,
         ),
-        Positioned(
-          left: 35,
-          right: 8,
-          top: 18,
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Body Temperature',
-              maxLines: 1,
-              style: appTextStyle(
-                fontSize: 12,
-                lineHeight: 19.5,
-                weight: FontWeight.w900,
-                color: const Color(0xFFF5A623),
-              ),
-            ),
+        child: Material(
+          color: color,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(radius),
+            side: border is Border ? border.top : BorderSide.none,
           ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(onTap: onTap, child: child),
         ),
-        Positioned(
-          left: 12,
-          right: 12,
-          top: 51,
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      ),
+    );
+  }
+
+  /// The main reading, on dark green so it stands out from the rest.
+  Widget _buildHeartRateCard(BuildContext context) {
+    return _buildTappable(
+      label: 'Heart rate details',
+      color: AppColors.darkGreen,
+      radius: _cardRadius + 4,
+      shadow: [
+        BoxShadow(
+          color: AppColors.darkGreen.withValues(alpha: 0.3),
+          offset: const Offset(0, 10),
+          blurRadius: 24,
+        ),
+      ],
+      onTap: () => _open(context, HeartRateScreen(vitals: vitals)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 10),
+                _buildIconBadge(
+                  Icons.favorite_rounded,
+                  background: AppColors.white.withValues(alpha: 0.12),
+                  foreground: AppColors.white,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
                   child: Text(
-                    '$_bodyTemperature',
+                    'Heart Rate',
                     style: appTextStyle(
-                      fontSize: 38,
-                      lineHeight: 38,
-                      weight: FontWeight.w900,
-                      color: AppColors.ink,
-                      letterSpacing: -1.9,
+                      fontSize: 15,
+                      lineHeight: 20,
+                      weight: FontWeight.w800,
+                      color: AppColors.white,
                     ),
                   ),
                 ),
-                const SizedBox(width: 6),
+                VitalStatusPill(status: vitals.heartRateStatus, onDark: true),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
                 Text(
-                  '°C',
+                  vitals.heartRateText,
                   style: appTextStyle(
-                    fontSize: 20,
-                    lineHeight: 24,
-                    weight: FontWeight.w800,
-                    color: AppColors.mutedText,
-                    letterSpacing: -1.9,
+                    fontSize: 64,
+                    lineHeight: 64,
+                    weight: FontWeight.w900,
+                    color: AppColors.white,
+                    letterSpacing: -3,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Text(
+                    'BPM',
+                    style: appTextStyle(
+                      fontSize: 16,
+                      lineHeight: 20,
+                      weight: FontWeight.w800,
+                      color: AppColors.white.withValues(alpha: 0.7),
+                    ),
                   ),
                 ),
               ],
             ),
-          ),
-        ),
-        Positioned(
-          left: 0,
-          right: 0,
-          top: 107,
-          child: Text(
-            'Normal',
-            textAlign: TextAlign.center,
-            style: appTextStyle(
-              fontSize: 13,
-              lineHeight: 19.5,
-              weight: FontWeight.w700,
-              color: const Color(0xFF8A5A05),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 40,
+              width: double.infinity,
+              child: SvgPicture.asset(
+                'assets/icons/ecg.svg',
+                fit: BoxFit.fill,
+                colorFilter: const ColorFilter.mode(
+                  AppColors.mint,
+                  BlendMode.srcIn,
+                ),
+              ),
             ),
-          ),
+            const SizedBox(height: 14),
+            _buildRangeBar(),
+            const SizedBox(height: 12),
+            _buildDetailsLink(onDark: true),
+          ],
         ),
-      ],
+      ),
     );
   }
 
-  Widget _buildMotionCard() {
-    const blue = Color(0xFF4979D1);
-    return _buildCard(
-      height: 138,
-      children: [
-        Positioned(
-          left: 20,
-          top: 16,
-          child: Image.asset(
-            'assets/images/staircase.png',
-            width: 24,
-            height: 17,
-          ),
-        ),
-        Positioned(
-          left: 48,
-          right: 8,
-          top: 16,
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Motion Status',
-              maxLines: 1,
-              style: appTextStyle(
-                fontSize: 13,
-                lineHeight: 19.5,
-                weight: FontWeight.w900,
-                color: blue,
-              ),
+  /// Where the heart rate sits within the resting range.
+  Widget _buildRangeBar() {
+    // The bar spans 40–140 BPM so the resting range sits in its middle.
+    const low = 40;
+    const high = 140;
+    double at(int bpm) => ((bpm - low) / (high - low)).clamp(0.0, 1.0);
+    final heartRate = vitals.heartRate;
+
+    final labelStyle = appTextStyle(
+      fontSize: 11,
+      lineHeight: 14,
+      weight: FontWeight.w600,
+      color: AppColors.white.withValues(alpha: 0.7),
+    );
+
+    return Semantics(
+      label: 'Resting range ${Vitals.restingLow} to ${Vitals.restingHigh} BPM',
+      child: ExcludeSemantics(
+        child: Column(
+          children: [
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final width = constraints.maxWidth;
+                return SizedBox(
+                  height: 12,
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: 4,
+                        height: 4,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: AppColors.white.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        left: width * at(Vitals.restingLow),
+                        width:
+                            width *
+                            (at(Vitals.restingHigh) - at(Vitals.restingLow)),
+                        top: 4,
+                        height: 4,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: AppColors.mint,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      if (heartRate != null)
+                        Positioned(
+                          left: width * at(heartRate) - 6,
+                          top: 0,
+                          child: Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: AppColors.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppColors.green,
+                                width: 2.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
             ),
-          ),
-        ),
-        Positioned(
-          left: 12,
-          right: 12,
-          top: 64,
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Row(
+            const SizedBox(height: 6),
+            Row(
               children: [
-                Container(
-                  width: 15,
-                  height: 15,
-                  decoration: const BoxDecoration(
-                    color: blue,
-                    shape: BoxShape.circle,
+                Expanded(
+                  child: Text(
+                    'Resting range '
+                    '${Vitals.restingLow}–${Vitals.restingHigh}',
+                    style: labelStyle,
                   ),
                 ),
-                const SizedBox(width: 9),
                 Text(
-                  'Stationary',
-                  style: appTextStyle(
-                    fontSize: 20,
-                    lineHeight: 26,
-                    weight: FontWeight.w900,
-                    color: const Color(0xFF000000),
-                  ),
+                  heartRate == null ? 'No data yet' : 'Updated 2s ago',
+                  style: labelStyle,
                 ),
               ],
             ),
-          ),
+          ],
         ),
-        Positioned(
-          left: 0,
-          right: 0,
-          top: 108,
-          child: Text(
-            'Active',
-            textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  /// "View details" with a chevron, at the foot of each reading card.
+  Widget _buildDetailsLink({bool onDark = false}) {
+    final color = onDark ? AppColors.white : AppColors.green;
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'View details',
             style: appTextStyle(
-              fontSize: 13,
-              lineHeight: 19.5,
-              weight: FontWeight.w700,
-              color: blue,
+              fontSize: 12,
+              lineHeight: 16,
+              weight: FontWeight.w800,
+              color: color,
             ),
           ),
+          const SizedBox(width: 2),
+          Icon(Icons.chevron_right_rounded, size: 18, color: color),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIconBadge(
+    IconData icon, {
+    Color background = AppColors.mint,
+    Color foreground = AppColors.green,
+  }) {
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(icon, size: 20, color: foreground),
+    );
+  }
+
+  /// Icon and title, the value and its word, the status, then the link.
+  Widget _buildReadingCard({
+    required String semanticsLabel,
+    required IconData icon,
+    required String title,
+    required Widget value,
+    required String detail,
+    required VitalStatus status,
+    required VoidCallback onTap,
+  }) {
+    return _buildTappable(
+      label: semanticsLabel,
+      color: AppColors.white,
+      radius: _cardRadius,
+      shadow: _cardShadow,
+      border: Border.all(color: AppColors.outline),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildIconBadge(icon),
+            const SizedBox(height: 12),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                title,
+                maxLines: 1,
+                style: appTextStyle(
+                  fontSize: 13,
+                  lineHeight: 18,
+                  weight: FontWeight.w700,
+                  color: AppColors.mutedText,
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: value,
+            ),
+            Text(
+              detail,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: appTextStyle(
+                fontSize: 12,
+                lineHeight: 16,
+                weight: FontWeight.w600,
+                color: AppColors.bodyText,
+              ),
+            ),
+            const Spacer(),
+            const SizedBox(height: 12),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: VitalStatusPill(status: status),
+            ),
+            const SizedBox(height: 10),
+            _buildDetailsLink(),
+          ],
         ),
-      ],
+      ),
+    );
+  }
+
+  Widget _buildTemperatureCard(BuildContext context) {
+    return _buildReadingCard(
+      semanticsLabel: 'Body temperature details',
+      icon: Icons.thermostat_rounded,
+      title: 'Body Temperature',
+      detail: vitals.temperatureLabel,
+      status: vitals.temperatureStatus,
+      onTap: () => _open(context, TemperatureScreen(vitals: vitals)),
+      value: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            vitals.bodyTemperatureText,
+            style: appTextStyle(
+              fontSize: 32,
+              lineHeight: 38,
+              weight: FontWeight.w900,
+              color: AppColors.ink,
+              letterSpacing: -1.2,
+            ),
+          ),
+          const SizedBox(width: 3),
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              '°C',
+              style: appTextStyle(
+                fontSize: 16,
+                lineHeight: 20,
+                weight: FontWeight.w800,
+                color: AppColors.mutedText,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMotionCard(BuildContext context) {
+    return _buildReadingCard(
+      semanticsLabel: 'Motion details',
+      icon: vitals.motion?.icon ?? Icons.directions_walk_rounded,
+      title: 'Motion Status',
+      detail: vitals.motion == null
+          ? 'No reading yet'
+          : 'For ${vitals.stillMinutes} min',
+      status: vitals.motionStatus,
+      onTap: () => _open(context, MotionScreen(vitals: vitals)),
+      value: Text(
+        vitals.motionText,
+        style: appTextStyle(
+          fontSize: 22,
+          lineHeight: 38,
+          weight: FontWeight.w900,
+          color: AppColors.ink,
+          letterSpacing: -0.5,
+        ),
+      ),
     );
   }
 
   Widget _buildLocationCard() {
-    return _buildCard(
-      height: 105,
-      children: [
-        Positioned(
-          left: 8,
-          top: 6,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: SvgPicture.asset(
-              'assets/icons/map_thumbnail.svg',
-              width: 110,
-              height: 92,
+    return _buildTappable(
+      label: 'Open map',
+      color: AppColors.white,
+      radius: _cardRadius,
+      shadow: _cardShadow,
+      border: Border.all(color: AppColors.outline),
+      onTap: () => onOpenMap?.call(),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: switch (position) {
+                final position? => LocationPreviewMap(
+                  position: position,
+                  width: 84,
+                  height: 72,
+                ),
+                null => Container(
+                  width: 84,
+                  height: 72,
+                  color: AppColors.outline,
+                  child: const Icon(
+                    Icons.location_off_rounded,
+                    color: AppColors.darkGreen,
+                  ),
+                ),
+              },
             ),
-          ),
-        ),
-        Positioned(
-          left: 129,
-          right: 12,
-          top: 16,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Your Location',
-                style: appTextStyle(
-                  fontSize: 13,
-                  lineHeight: 19.5,
-                  weight: FontWeight.w900,
-                  color: const Color(0xFF898989),
-                ),
-              ),
-              const SizedBox(height: 5.5),
-              Padding(
-                padding: const EdgeInsets.only(left: 3),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      location,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: appTextStyle(
-                        fontSize: 12,
-                        lineHeight: 19.5,
-                        weight: FontWeight.w700,
-                        color: const Color(0xFF000000),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.place_rounded,
+                        size: 16,
+                        color: AppColors.green,
                       ),
-                    ),
-                    const SizedBox(height: 1.5),
-                    Text(
-                      'Active • updated 12s ago',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: appTextStyle(
-                        fontSize: 12,
-                        lineHeight: 19.5,
-                        weight: FontWeight.w300,
-                        color: AppColors.darkGreen,
+                      const SizedBox(width: 4),
+                      Text(
+                        'Your Location',
+                        style: appTextStyle(
+                          fontSize: 13,
+                          lineHeight: 18,
+                          weight: FontWeight.w700,
+                          color: AppColors.mutedText,
+                        ),
                       ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    location,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: appTextStyle(
+                      fontSize: 14,
+                      lineHeight: 19,
+                      weight: FontWeight.w800,
+                      color: AppColors.ink,
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'GPS active · updated 12s ago',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: appTextStyle(
+                      fontSize: 12,
+                      lineHeight: 16,
+                      weight: FontWeight.w500,
+                      color: AppColors.green,
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: 22,
+              color: AppColors.green,
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

@@ -1,46 +1,41 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:capartner/features/auth/widgets/auth_widgets.dart';
+import 'package:capartner/features/auth/widgets/verification_layout.dart';
+import 'package:capartner/features/pairing/cap_radio.dart';
 import 'package:capartner/features/pairing/pairing_widgets.dart';
-import 'package:capartner/theme/app_colors.dart';
-import 'package:capartner/theme/app_text_styles.dart';
+import 'package:capartner/features/pairing/phone_bluetooth.dart';
 
-/// Smart Cap pairing, steps 1 to 3 (Figma nodes 542:437, 546:451, 546:495).
+/// Smart Cap pairing in three steps: turn the cap on, scan and pick it, then
+/// the connected summary.
 ///
-/// This is a demonstration only: Bluetooth is never touched, and the devices
-/// "found" while scanning are [demoDevices]. [onDone] is called with the name
-/// of the paired cap when the user leaves the last step.
+/// The phone's Bluetooth is switched on (after Android's prompt), [radio]
+/// scans for caps and connects to the one picked, and stays connected after.
+/// [onDone] is called with the name of the paired cap when the user leaves
+/// the last step.
 class PairingScreen extends StatefulWidget {
-  const PairingScreen({super.key, this.onDone});
+  const PairingScreen({
+    super.key,
+    required this.radio,
+    required this.assignedCap,
+    this.onUnauthorized,
+    this.onDone,
+    this.bluetooth = const PhoneBluetooth(),
+  });
 
+  final CapRadio radio;
+
+  /// Code of the cap the admin assigned to the logged-in enforcer; empty
+  /// when none. Any other cap is refused.
+  final String assignedCap;
+
+  /// Called with the name of a cap the user tried to pair that is not theirs,
+  /// so the attempt can be logged and reported to the admin.
+  final ValueChanged<String>? onUnauthorized;
   final ValueChanged<String>? onDone;
-
-  /// Stand-ins for scan results until real pairing exists.
-  static const List<PairingDevice> demoDevices = [
-    PairingDevice(
-      name: 'CAP-001',
-      description: 'CAPartner Smart Cap',
-      signalBars: 4,
-    ),
-    PairingDevice(
-      name: 'CAP-014',
-      description: 'CAPartner Smart Cap',
-      signalBars: 2,
-    ),
-    PairingDevice(
-      name: 'BLE-9F2',
-      description: 'Unknown BLE Device',
-      signalBars: 1,
-      isSmartCap: false,
-    ),
-  ];
-
-  /// Delay before each demo device shows up in the list.
-  static const Duration deviceFoundInterval = Duration(milliseconds: 900);
-  static const Duration pairingDuration = Duration(milliseconds: 1500);
+  final PhoneBluetooth bluetooth;
 
   @override
   State<PairingScreen> createState() => _PairingScreenState();
@@ -48,50 +43,79 @@ class PairingScreen extends StatefulWidget {
 
 class _PairingScreenState extends State<PairingScreen> {
   int _step = 1;
-  bool _bluetoothOn = false;
+
+  /// Shown on the first step when Bluetooth stays off.
+  String? _bluetoothError;
 
   final List<PairingDevice> _foundDevices = [];
   PairingDevice? _selected;
   String? _error;
   bool _pairing = false;
 
-  Timer? _scanTimer;
-  Timer? _pairTimer;
+  StreamSubscription<PairingDevice>? _scan;
+  bool _scanning = false;
 
   @override
   void dispose() {
-    _scanTimer?.cancel();
-    _pairTimer?.cancel();
+    _scan?.cancel();
     super.dispose();
   }
 
   Future<void> _startScanning() async {
-    if (!_bluetoothOn) {
-      final turnedOn = await showBluetoothDialog(context);
-      if (!turnedOn || !mounted) return;
-      _bluetoothOn = true;
+    setState(() => _bluetoothError = null);
+    if (!await widget.bluetooth.isOn()) {
+      if (!mounted) return;
+      final turnOn = await showBluetoothDialog(context);
+      if (!turnOn || !mounted) return;
+      final request = await widget.bluetooth.turnOn();
+      if (!mounted) return;
+      // Where Bluetooth cannot be switched on for the user, the scan goes
+      // ahead and says so if it fails.
+      if (request == BluetoothRequest.declined) {
+        setState(
+          () => _bluetoothError =
+              'Bluetooth is still off. Turn it on to pair your cap.',
+        );
+        return;
+      }
     }
+    setState(() => _step = 2);
+    _scanAgain();
+  }
+
+  void _scanAgain() {
+    _scan?.cancel();
     setState(() {
-      _step = 2;
       _foundDevices.clear();
       _selected = null;
       _error = null;
+      _scanning = true;
     });
-    _scanTimer?.cancel();
-    _scanTimer = Timer.periodic(PairingScreen.deviceFoundInterval, (timer) {
-      setState(
-        () =>
-            _foundDevices.add(PairingScreen.demoDevices[_foundDevices.length]),
-      );
-      if (_foundDevices.length == PairingScreen.demoDevices.length) {
-        timer.cancel();
-      }
-    });
+    _scan = widget.radio.scan().listen(
+      (device) => setState(() => _foundDevices.add(device)),
+      onError: (Object e) => setState(
+        () => _error = e is CapRadioException
+            ? e.message
+            : "Couldn't scan for caps. Try again.",
+      ),
+      onDone: () => setState(() {
+        _scanning = false;
+        if (_foundDevices.isEmpty) {
+          _error ??=
+              'No cap found. Make sure it is on and close to your phone.';
+        }
+      }),
+    );
+  }
+
+  void _stopScanning() {
+    _scan?.cancel();
+    _scan = null;
+    _scanning = false;
   }
 
   void _backToStart() {
-    _scanTimer?.cancel();
-    _pairTimer?.cancel();
+    _stopScanning();
     setState(() {
       _step = 1;
       _pairing = false;
@@ -106,10 +130,14 @@ class _PairingScreenState extends State<PairingScreen> {
     });
   }
 
-  void _pair() {
+  Future<void> _pair() async {
     final device = _selected;
     if (_pairing) return;
     if (device == null) {
+      if (_nothingFound) {
+        _scanAgain();
+        return;
+      }
       setState(
         () => _error = _foundDevices.isEmpty
             ? 'Still scanning. Please wait for your cap to appear.'
@@ -121,15 +149,47 @@ class _PairingScreenState extends State<PairingScreen> {
       setState(() => _error = '${device.name} is not a CAPartner Smart Cap.');
       return;
     }
-    _scanTimer?.cancel();
-    setState(() => _pairing = true);
-    _pairTimer = Timer(PairingScreen.pairingDuration, () {
+    if (widget.assignedCap.isEmpty) {
+      widget.onUnauthorized?.call(device.name);
+      setState(
+        () => _error =
+            'No Smart Cap is assigned to your account yet. Ask your admin to '
+            'assign one.',
+      );
+      return;
+    }
+    if (_capKey(device.name) != _capKey(widget.assignedCap)) {
+      widget.onUnauthorized?.call(device.name);
+      setState(
+        () => _error =
+            '${device.name} is not the cap assigned to you. This attempt was '
+            'reported to your admin.',
+      );
+      return;
+    }
+    setState(() {
+      _stopScanning();
+      _pairing = true;
+    });
+    try {
+      await widget.radio.connect(device);
+      if (!mounted) return;
       setState(() {
         _pairing = false;
         _step = 3;
       });
-    });
+    } on CapRadioException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _pairing = false;
+        _error = e.message;
+      });
+    }
   }
+
+  /// "CAP-001", "CAP 001" and "cap001" are the same cap.
+  static String _capKey(String name) =>
+      name.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
 
   @override
   Widget build(BuildContext context) {
@@ -143,6 +203,11 @@ class _PairingScreenState extends State<PairingScreen> {
         1 => PairingScaffold(
           step: 1,
           connected: false,
+          emblem: const PairingEmblem(svgAsset: 'assets/icons/smart_cap.svg'),
+          heading: 'Turn on your Smart Cap',
+          subheading:
+              'Press and hold the power button on the cap band until the '
+              'LED blinks blue.',
           body: _buildInstructions(),
           buttonLabel: 'Start Scanning',
           onButtonPressed: _startScanning,
@@ -150,14 +215,33 @@ class _PairingScreenState extends State<PairingScreen> {
         2 => PairingScaffold(
           step: 2,
           connected: false,
+          emblem: const PairingEmblem(
+            svgAsset: 'assets/icons/bluetooth_white.svg',
+            scanning: true,
+          ),
+          heading: _pairing
+              ? 'Pairing with ${_selected!.name}…'
+              : _scanning
+              ? 'Scanning for nearby caps…'
+              : 'Select your Smart Cap',
+          subheading: 'Keep your cap within 1 meter of your phone.',
           body: _buildScan(),
-          buttonLabel: _pairing ? 'Pairing…' : 'Pair Device',
-          buttonActive: _selected != null && !_pairing,
+          buttonLabel: _pairing
+              ? 'Pairing…'
+              : _nothingFound
+              ? 'Scan Again'
+              : 'Pair Device',
+          buttonActive: (_selected != null || _nothingFound) && !_pairing,
+          buttonBusy: _pairing,
           onButtonPressed: _pair,
         ),
         _ => PairingScaffold(
           step: 3,
           connected: true,
+          emblem: const PairingEmblem(svgAsset: 'assets/icons/check.svg'),
+          heading: 'Smart Cap connected',
+          subheading:
+              '${_selected!.name} is now streaming vitals to your station.',
           body: _buildConnected(),
           buttonLabel: 'Go To Dashboard',
           onButtonPressed: () => widget.onDone?.call(_selected!.name),
@@ -166,190 +250,82 @@ class _PairingScreenState extends State<PairingScreen> {
     );
   }
 
+  /// The scan ended without a cap, so the button scans again.
+  bool get _nothingFound => !_scanning && _foundDevices.isEmpty;
+
   Widget _buildInstructions() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 46),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(28, 36, 28, 38),
-          decoration: BoxDecoration(
-            color: AppColors.paleMint,
-            border: Border.all(
-              color: AppColors.green.withValues(alpha: 0.3),
-              width: 2,
-            ),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: AppColors.darkGreen,
-                  shape: BoxShape.circle,
-                ),
-                child: SvgPicture.asset(
-                  'assets/icons/cap_large.svg',
-                  width: 40,
-                  height: 40,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Turn on your Smart Cap',
-                textAlign: TextAlign.center,
-                style: appTextStyle(
-                  fontSize: 22,
-                  lineHeight: 33,
-                  weight: FontWeight.w800,
-                  color: AppColors.darkGreen,
-                  letterSpacing: -0.55,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Press and hold the power button on the cap band until the '
-                'LED blinks blue.',
-                textAlign: TextAlign.center,
-                style: appTextStyle(
-                  fontSize: 15,
-                  lineHeight: 20.625,
-                  weight: FontWeight.w500,
-                  color: AppColors.bodyText,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 26),
+        const PairingSectionLabel('BEFORE YOU START'),
+        const SizedBox(height: 12),
         const PairingTipCard(
-          iconAsset: 'assets/icons/power.svg',
+          number: 1,
+          icon: Icons.power_settings_new_rounded,
           title: 'Hold the power button 2 seconds',
           description: 'LED turns solid, then blinks blue.',
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         const PairingTipCard(
-          iconAsset: 'assets/icons/bluetooth_green.svg',
+          number: 2,
+          icon: Icons.bluetooth_rounded,
           title: 'Keep the cap within 1 meter',
           description: 'Pairing range is short for security.',
         ),
-        const SizedBox(height: 24),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: AuthErrorText(message: _bluetoothError, minHeight: 0),
+        ),
+        const VerificationNote(
+          icon: Icons.bluetooth_searching_rounded,
+          text: "We'll ask to turn on Bluetooth if it is off.",
+        ),
       ],
     );
   }
 
   Widget _buildScan() {
-    final scanning = _foundDevices.length < PairingScreen.demoDevices.length;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 24),
-        const Center(child: ScanningPulse()),
-        const SizedBox(height: 16),
-        Center(
-          child: Text(
-            _pairing
-                ? 'Pairing with ${_selected!.name}…'
-                : scanning
-                ? 'Scanning for nearby caps…'
-                : 'Select your Smart Cap',
-            textAlign: TextAlign.center,
-            style: appTextStyle(
-              fontSize: 15,
-              lineHeight: 22.5,
-              weight: FontWeight.w700,
-              color: AppColors.ink,
-            ),
-          ),
-        ),
-        const SizedBox(height: 28),
-        Text(
-          'Available devices (${_foundDevices.length})',
-          style: appTextStyle(
-            fontSize: 12,
-            lineHeight: 18,
-            weight: FontWeight.w800,
-            color: AppColors.mutedText,
-            letterSpacing: 1.2,
-          ),
-        ),
-        const SizedBox(height: 8),
+        PairingSectionLabel('Available devices (${_foundDevices.length})'),
+        const SizedBox(height: 12),
         for (final device in _foundDevices) ...[
           PairingDeviceTile(
+            key: ValueKey(device.name),
             device: device,
             selected: device == _selected,
             onTap: () => _select(device),
           ),
           const SizedBox(height: 10),
         ],
+        if (_scanning && !_pairing) const PairingSearchingRow(),
         AuthErrorText(message: _error, minHeight: 14),
       ],
     );
   }
 
   Widget _buildConnected() {
-    final name = _selected!.name;
-
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 58),
-        Container(
-          width: 96,
-          height: 96,
-          alignment: Alignment.center,
-          decoration: const BoxDecoration(
-            color: AppColors.darkGreen,
-            shape: BoxShape.circle,
-          ),
-          child: SvgPicture.asset(
-            'assets/icons/check.svg',
-            width: 56,
-            height: 56,
-          ),
-        ),
-        const SizedBox(height: 24),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            'Smart Cap connected',
-            maxLines: 1,
-            style: appTextStyle(
-              fontSize: 26,
-              lineHeight: 39,
-              weight: FontWeight.w900,
-              color: AppColors.ink,
-              letterSpacing: -0.65,
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18),
-          child: Text(
-            '$name is now streaming vitals to your station.',
-            textAlign: TextAlign.center,
-            style: appTextStyle(
-              fontSize: 15,
-              lineHeight: 22.5,
-              weight: FontWeight.w500,
-              color: AppColors.bodyText,
-            ),
-          ),
-        ),
-        const SizedBox(height: 32),
+        const PairingSectionLabel('DEVICE DETAILS'),
+        const SizedBox(height: 12),
         PairingSummaryCard(
           rows: [
-            ('Device', name),
-            const ('Sensors', 'idle'),
-            const ('Cap battery', '70%'),
-            const ('Link', 'Bluetooth · Strong'),
+            (Icons.sensors_rounded, 'Device', _selected!.name),
+            (
+              Icons.bluetooth_connected_rounded,
+              'Link',
+              'Bluetooth · ${_selected!.signalBars} of 4 bars',
+            ),
           ],
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
+        const VerificationNote(
+          icon: Icons.info_outline_rounded,
+          text: 'You can change your paired cap in Account.',
+        ),
       ],
     );
   }

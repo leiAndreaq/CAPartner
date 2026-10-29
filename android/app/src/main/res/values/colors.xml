@@ -2,4 +2,6 @@
 <resources>
     <!-- Matches AppColors.darkGreen so the native launch window blends into the Flutter splash screen -->
     <color name="splash_background">#053D1C</color>
+    <!-- Background layer of the adaptive launcher icon -->
+    <color name="ic_launcher_background">#FFFFFF</color>
 </resources>
