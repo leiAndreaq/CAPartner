@@ -1,52 +1,21 @@
 import { useState, useRef } from 'react';
-import { Activity, MapPin, Shield, Eye, EyeOff, User, Lock, ChevronRight, ArrowLeft, Check, Smartphone, Sparkles, Mail, Building, Briefcase, UserPlus, Phone } from 'lucide-react';
+import { Activity, MapPin, Shield, Eye, EyeOff, User, Lock, ChevronRight, ArrowLeft, Check, Sparkles, Mail } from 'lucide-react';
 import capLogo from '../assets/CAP LOGO.png';
 import mapBg from '../assets/location_pins.png';
 
 export default function LoginPage({ onLoginSuccess }) {
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [currentView, setCurrentView] = useState('login'); // 'login' | 'signup' | 'forgot' | 'success' | 'otp'
+  const [currentView, setCurrentView] = useState('login'); // 'login' | 'forgot' | 'success' | 'otp'
   const [recoveryEmail, setRecoveryEmail] = useState('');
-  
-  // State para sa verification method (email o phone)
-  const [verifyMethod, setVerifyMethod] = useState('email');
   
   // States para sa 6-digit OTP at custom toast message
   const [otpValues, setOtpValues] = useState(['', '', '', '', '', '']);
   const [toastMessage, setToastMessage] = useState('');
   const inputRefs = useRef([]);
 
-  // State para sa Admin Account Sign Up Form
-  const [signUpData, setSignUpData] = useState({
-    fullName: '',
-    employeeId: '',
-    contactNumber: '',
-    department: 'Command Operations',
-    role: 'System Administrator',
-    email: '',
-    password: '',
-    confirmPassword: ''
-  });
-
   const handleLoginSubmit = (e) => {
     e.preventDefault();
     setCurrentView('otp');
-  };
-
-  const handleSignUpSubmit = (e) => {
-    e.preventDefault();
-    if (signUpData.password !== signUpData.confirmPassword) {
-      setToastMessage('Passwords do not match. Please check again.');
-      setTimeout(() => setToastMessage(''), 4000);
-      return;
-    }
-
-    setToastMessage(`Admin account for ${signUpData.fullName} registered! Please log in.`);
-    setTimeout(() => {
-      setToastMessage('');
-      setCurrentView('login');
-    }, 2500);
   };
 
   const handleRecoverySubmit = (e) => {
@@ -77,7 +46,7 @@ export default function LoginPage({ onLoginSuccess }) {
   };
 
   const triggerResendToast = () => {
-    setToastMessage(`New code sent to your ${verifyMethod === 'email' ? 'email' : 'phone number'}!`);
+    setToastMessage('New verification code sent to your Gmail!');
     setTimeout(() => {
       setToastMessage('');
     }, 4000);
@@ -170,7 +139,7 @@ export default function LoginPage({ onLoginSuccess }) {
           {/* --- LOGIN VIEW --- */}
           {currentView === 'login' && (
             <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-              <div className="mb-5 sm:mb-6">
+              <div className="mb-6 sm:mb-8">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-4 h-[2px] bg-[#0A3320]"></div>
                   <p className="text-[9px] font-bold tracking-[0.15em] text-[#0A3320] uppercase">
@@ -185,12 +154,12 @@ export default function LoginPage({ onLoginSuccess }) {
                 </p>
               </div>
 
-              <form className="space-y-3.5" onSubmit={handleLoginSubmit}>
+              <form className="space-y-4" onSubmit={handleLoginSubmit}>
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold text-gray-900" htmlFor="username">Username</label>
                   <div className="relative">
                     <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input id="username" type="text" placeholder="Enter your username" defaultValue="Alex Mendoza" className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:border-[#0A3320] focus:ring-1 focus:ring-[#0A3320] outline-none text-xs sm:text-sm" />
+                    <input id="username" type="text" placeholder="Enter your username" defaultValue="Alex Mendoza" className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-[#0A3320] focus:ring-1 focus:ring-[#0A3320] outline-none text-xs sm:text-sm" />
                   </div>
                 </div>
 
@@ -198,14 +167,14 @@ export default function LoginPage({ onLoginSuccess }) {
                   <label className="text-[11px] font-bold text-gray-900" htmlFor="password">Password</label>
                   <div className="relative">
                     <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input id="password" type={showPassword ? 'text' : 'password'} placeholder="Enter your password" defaultValue="••••••••" className="w-full pl-10 pr-12 py-2.5 rounded-xl border border-gray-200 focus:border-[#0A3320] focus:ring-1 focus:ring-[#0A3320] outline-none text-xs sm:text-sm" />
+                    <input id="password" type={showPassword ? 'text' : 'password'} placeholder="Enter your password" defaultValue="••••••••" className="w-full pl-10 pr-12 py-3 rounded-xl border border-gray-200 focus:border-[#0A3320] focus:ring-1 focus:ring-[#0A3320] outline-none text-xs sm:text-sm" />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-0.5">
+                <div className="flex items-center justify-between pt-1">
                   <label className="flex items-center gap-1.5 cursor-pointer">
                     <input type="checkbox" className="w-3.5 h-3.5 rounded border-gray-300 text-[#0A3320] focus:ring-[#0A3320] accent-[#0A3320] cursor-pointer" />
                     <span className="text-[11px] text-gray-600 font-medium">Remember me</span>
@@ -215,198 +184,15 @@ export default function LoginPage({ onLoginSuccess }) {
                   </button>
                 </div>
 
-                <button type="submit" className="w-full bg-[#0A3320] hover:bg-[#061E12] text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md shadow-[#0A3320]/20 cursor-pointer text-xs sm:text-sm">
+                <button type="submit" className="w-full bg-[#0A3320] hover:bg-[#061E12] text-white font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md shadow-[#0A3320]/20 cursor-pointer text-xs sm:text-sm mt-2">
                   Sign In
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </form>
-
-              {/* NOTICEABLE CREATE ADMIN ACCOUNT BUTTON */}
-              <div className="mt-5 pt-4 border-t border-gray-100">
-                <div className="bg-emerald-50/70 border border-emerald-100/80 rounded-2xl p-3 text-center">
-                  <p className="text-[11px] font-bold text-gray-700 mb-2">New Command Center Personnel?</p>
-                  <button
-                    type="button"
-                    onClick={() => setCurrentView('signup')}
-                    className="w-full py-2.5 rounded-xl border-2 border-[#0A3320] text-[#0A3320] bg-white hover:bg-[#0A3320] hover:text-white font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs"
-                  >
-                    <UserPlus className="w-4 h-4" /> Create Admin Account
-                  </button>
-                </div>
-              </div>
             </div>
           )}
 
-          {/* --- CREATE ADMIN ACCOUNT VIEW --- */}
-          {currentView === 'signup' && (
-            <div className="animate-in fade-in slide-in-from-left-4 duration-300">
-              <button 
-                onClick={() => setCurrentView('login')} 
-                className="flex items-center gap-1 text-[11px] font-bold text-[#0A3320] hover:underline mb-3 cursor-pointer"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" /> Back to sign in
-              </button>
-
-              <div className="mb-3">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <div className="w-3.5 h-[2px] bg-[#0A3320]"></div>
-                  <p className="text-[9px] font-bold tracking-[0.15em] text-[#0A3320] uppercase">
-                    Admin Registration
-                  </p>
-                </div>
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">
-                  Create Admin Account
-                </h2>
-              </div>
-
-              <form onSubmit={handleSignUpSubmit} className="space-y-2">
-                
-                {/* Full Name */}
-                <div>
-                  <label className="block text-[10px] font-bold text-gray-700 uppercase mb-0.5">Full Name</label>
-                  <div className="relative">
-                    <User className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input 
-                      type="text" 
-                      required 
-                      placeholder="e.g. Juan Dela Cruz" 
-                      value={signUpData.fullName}
-                      onChange={(e) => setSignUpData({ ...signUpData, fullName: e.target.value })}
-                      className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-gray-200 focus:border-[#0A3320] focus:ring-1 focus:ring-[#0A3320] outline-none text-xs" 
-                    />
-                  </div>
-                </div>
-
-                {/* Admin Employee ID & Contact Number */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-700 uppercase mb-0.5">Employee ID</label>
-                    <div className="relative">
-                      <Shield className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input 
-                        type="text" 
-                        required 
-                        placeholder="ADM-2026-001" 
-                        value={signUpData.employeeId}
-                        onChange={(e) => setSignUpData({ ...signUpData, employeeId: e.target.value })}
-                        className="w-full pl-9 pr-2 py-1.5 rounded-lg border border-gray-200 focus:border-[#0A3320] focus:ring-1 focus:ring-[#0A3320] outline-none text-xs" 
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-700 uppercase mb-0.5">Contact No.</label>
-                    <div className="relative">
-                      <Phone className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input 
-                        type="text" 
-                        required 
-                        placeholder="09123456789" 
-                        value={signUpData.contactNumber}
-                        onChange={(e) => setSignUpData({ ...signUpData, contactNumber: e.target.value })}
-                        className="w-full pl-9 pr-2 py-1.5 rounded-lg border border-gray-200 focus:border-[#0A3320] focus:ring-1 focus:ring-[#0A3320] outline-none text-xs" 
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Department & Role */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-700 uppercase mb-0.5">Department</label>
-                    <div className="relative">
-                      <Building className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <select 
-                        value={signUpData.department}
-                        onChange={(e) => setSignUpData({ ...signUpData, department: e.target.value })}
-                        className="w-full pl-8 pr-1 py-1.5 rounded-lg border border-gray-200 focus:border-[#0A3320] outline-none text-[11px] bg-white cursor-pointer"
-                      >
-                        <option>Command Operations</option>
-                        <option>IT & Support</option>
-                        <option>Emergency Dispatch</option>
-                        <option>Field Admin</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-700 uppercase mb-0.5">Role</label>
-                    <div className="relative">
-                      <Briefcase className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <select 
-                        value={signUpData.role}
-                        onChange={(e) => setSignUpData({ ...signUpData, role: e.target.value })}
-                        className="w-full pl-8 pr-1 py-1.5 rounded-lg border border-gray-200 focus:border-[#0A3320] outline-none text-[11px] bg-white cursor-pointer"
-                      >
-                        <option>System Administrator</option>
-                        <option>Field Dispatcher</option>
-                        <option>Support Officer</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Admin Email */}
-                <div>
-                  <label className="block text-[10px] font-bold text-gray-700 uppercase mb-0.5">Official Admin Email</label>
-                  <div className="relative">
-                    <Mail className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input 
-                      type="email" 
-                      required 
-                      placeholder="admin@capartner.sys" 
-                      value={signUpData.email}
-                      onChange={(e) => setSignUpData({ ...signUpData, email: e.target.value })}
-                      className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-gray-200 focus:border-[#0A3320] focus:ring-1 focus:ring-[#0A3320] outline-none text-xs" 
-                    />
-                  </div>
-                </div>
-
-                {/* Passwords */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-700 uppercase mb-0.5">Password</label>
-                    <div className="relative">
-                      <Lock className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input 
-                        type={showPassword ? 'text' : 'password'} 
-                        required 
-                        placeholder="••••••••" 
-                        value={signUpData.password}
-                        onChange={(e) => setSignUpData({ ...signUpData, password: e.target.value })}
-                        className="w-full pl-8 pr-2 py-1.5 rounded-lg border border-gray-200 focus:border-[#0A3320] outline-none text-xs" 
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-700 uppercase mb-0.5">Confirm Pass</label>
-                    <div className="relative">
-                      <Lock className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input 
-                        type={showConfirmPassword ? 'text' : 'password'} 
-                        required 
-                        placeholder="••••••••" 
-                        value={signUpData.confirmPassword}
-                        onChange={(e) => setSignUpData({ ...signUpData, confirmPassword: e.target.value })}
-                        className="w-full pl-8 pr-2 py-1.5 rounded-lg border border-gray-200 focus:border-[#0A3320] outline-none text-xs" 
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <button 
-                  type="submit" 
-                  className="w-full bg-[#0A3320] hover:bg-[#061E12] text-white font-bold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-md shadow-[#0A3320]/20 cursor-pointer mt-3 text-xs"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  Register Admin Account
-                </button>
-              </form>
-            </div>
-          )}
-
-          {/* --- TWO-FACTOR VERIFICATION (OTP) VIEW --- */}
+          {/* --- TWO-FACTOR VERIFICATION (OTP VIA GMAIL ONLY) VIEW --- */}
           {currentView === 'otp' && (
             <div className="animate-in fade-in slide-in-from-left-4 duration-300">
               <button onClick={() => setCurrentView('login')} className="flex items-center gap-1 text-[11px] font-bold text-[#0A3320] hover:underline mb-4 cursor-pointer">
@@ -414,44 +200,15 @@ export default function LoginPage({ onLoginSuccess }) {
               </button>
 
               <div className="w-12 h-12 bg-[#E8F2EC] rounded-2xl flex items-center justify-center mb-4 text-[#0A3320]">
-                {verifyMethod === 'email' ? <Mail className="w-6 h-6" /> : <Smartphone className="w-6 h-6" />}
+                <Mail className="w-6 h-6" />
               </div>
 
               <h2 className="text-2xl font-bold text-gray-900 mb-2 tracking-tight">
-                Verification
+                Email Verification
               </h2>
 
-              <div className="flex p-1 mb-4 bg-gray-100/80 rounded-xl border border-gray-200/50">
-                <button
-                  type="button"
-                  onClick={() => setVerifyMethod('email')}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                    verifyMethod === 'email' 
-                      ? 'bg-white text-[#0A3320] shadow-sm border border-gray-200/50' 
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <Mail className="w-3.5 h-3.5" /> Via Email
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setVerifyMethod('phone')}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                    verifyMethod === 'phone' 
-                      ? 'bg-white text-[#0A3320] shadow-sm border border-gray-200/50' 
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <Smartphone className="w-3.5 h-3.5" /> Via SMS
-                </button>
-              </div>
-
               <p className="text-gray-500 text-xs mb-6 leading-relaxed">
-                {verifyMethod === 'email' ? (
-                  <>Enter the 6-digit code sent to (<span className="font-semibold text-gray-700">al*****@gmail.com</span>).</>
-                ) : (
-                  <>Enter the 6-digit code sent to (<span className="font-semibold text-gray-700">+63 9** *** ****</span>).</>
-                )}
+                Enter the 6-digit verification code sent to your Gmail account (<span className="font-semibold text-gray-700">al*****@gmail.com</span>).
               </p>
 
               <form onSubmit={handleOtpVerify} className="space-y-5">

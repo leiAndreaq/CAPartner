@@ -3,12 +3,10 @@ import SplashScreen from './components/SplashScreen';
 import LoginPage from './components/LoginPage';
 import Sidebar from './components/layout/Sidebar';
 import Navbar from './components/layout/Navbar';
-import Overview from './components/Overview';
 import Monitoring from './components/Monitoring';
 import Camera from './components/Camera';
 import ActivityLog from './components/ActivityLog';
 import Alerts from './components/Alerts';
-import Settings from './components/Settings';
 import AdminSettings from './components/AdminSettings';
 import { AlertTriangle, VideoOff, BatteryWarning, Radio, X } from 'lucide-react';
 
@@ -18,7 +16,7 @@ function App() {
   // ==========================================================
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isSplashVisible, setIsSplashVisible] = useState(true);
-  const [activePage, setActivePage] = useState('Overview');
+  const [activePage, setActivePage] = useState('Monitoring');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedAlertId, setSelectedAlertId] = useState(null);
 
@@ -143,7 +141,7 @@ function App() {
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    setActivePage('Overview');
+    setActivePage('Monitoring');
     setSelectedAlertId(null);
     setIsSidebarOpen(false);
     setShowCriticalModal(false);
@@ -208,7 +206,6 @@ function App() {
         
         {/* Active Page View Switcher */}
         <div className="relative flex-1 min-w-0 overflow-y-auto overflow-x-hidden bg-[#F8FAF9]">
-          {activePage === 'Overview' && <Overview />}
           {activePage === 'Monitoring' && <Monitoring />}
           {activePage === 'Camera' && <Camera />}
           {activePage === 'Activity Log' && <ActivityLog />}

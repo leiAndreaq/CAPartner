@@ -1,94 +1,60 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
+import capLogo from '../assets/CAP LOGO.png';
 
-const capLogo = new URL('../assets/CAP LOGO.png', import.meta.url).href;
-
-export default function SplashScreen({ onFinish, duration = 1800 }) {
-  const [fadeOut, setFadeOut] = useState(false);
+export default function SplashScreen({ onFinish }) {
+  const [isExiting, setIsExiting] = useState(false);
 
   useEffect(() => {
+    // I-lock ang scroll habang nagpapakita ang splash screen
     document.body.style.overflow = 'hidden';
 
-    const fadeTimer = setTimeout(() => {
-      setFadeOut(true);
-    }, duration - 400);
+    // Maghintay ng 1200ms bago simulan ang fade out animation
+    const timer = setTimeout(() => {
+      setIsExiting(true);
+    }, 1200); 
 
+    // Pagkatapos ng animation (mga 1500ms total), tawagin ang onFinish para matanggal na sa DOM
     const finishTimer = setTimeout(() => {
       document.body.style.overflow = 'unset';
       if (onFinish) onFinish();
-    }, duration);
+    }, 1500);
 
     return () => {
       document.body.style.overflow = 'unset';
-      clearTimeout(fadeTimer);
+      clearTimeout(timer);
       clearTimeout(finishTimer);
     };
-  }, [duration, onFinish]);
+  }, [onFinish]);
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 99999,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#063b22',
-        transition: 'opacity 500ms ease-out',
-        opacity: fadeOut ? 0 : 1,
-        pointerEvents: fadeOut ? 'none' : 'auto',
-        overflow: 'hidden',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          textAlign: 'center',
-          padding: '24px',
-        }}
-      >
-        <img
-          src={capLogo}
-          alt="CAPartner Logo"
+    <div className={`fixed inset-0 z-[99999] flex flex-col items-center justify-center w-full h-screen bg-[#0A3320] transition-opacity duration-300 ${isExiting ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+      <div className={`flex flex-col items-center transition-all duration-500 ${isExiting ? '-translate-y-8 scale-105 opacity-0' : 'animate-in slide-in-from-bottom-4 duration-700 fade-in zoom-in-95'}`}>
+        
+        {/* Logo */}
+        <img 
+          src={capLogo} 
+          alt="CAPartner Logo" 
+          className="w-48 h-48 object-contain mb-8 drop-shadow-[0_10px_25px_rgba(0,0,0,0.25)] select-none" 
           draggable="false"
-          style={{
-            width: 'min(65vw, 280px)',
-            height: 'auto',
-            userSelect: 'none',
-            marginBottom: '20px',
-          }}
         />
-
-        <h1
-          style={{
-            margin: 0,
-            color: '#ffffff',
-            fontWeight: 800,
-            letterSpacing: '-0.01em',
-            fontSize: 'clamp(2.4rem, 5vw, 3.8rem)',
-            lineHeight: 1,
-            fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          }}
-        >
+        
+        {/* Branding */}
+        <h1 className="text-5xl font-extrabold tracking-tight text-white mb-4 drop-shadow-md">
           CAPartner
         </h1>
-
-        <p
-          style={{
-            margin: '12px 0 0 0',
-            color: '#ffffff',
-            fontSize: 'clamp(0.8rem, 1.6vw, 1.1rem)',
-            fontWeight: 400,
-            letterSpacing: '0.02em',
-            opacity: 0.9,
-            fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          }}
-        >
-          CAPartner sa Kalusugan, CAPartner sa Kaligtasan
+        
+        {/* Tagline */}
+        <p className="text-[11px] tracking-[0.25em] text-white uppercase font-semibold drop-shadow-sm text-center px-4">
+          CAPartner sa kalusugan, CAPartner sa kaligtasan
         </p>
+
+        {/* Loading indicator */}
+        <div className={`mt-14 flex gap-2 transition-opacity duration-200 ${isExiting ? 'opacity-0' : 'opacity-100'}`}>
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce" style={{ animationDelay: '0ms' }}></div>
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce" style={{ animationDelay: '150ms' }}></div>
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce" style={{ animationDelay: '300ms' }}></div>
+        </div>
+
       </div>
     </div>
   );
