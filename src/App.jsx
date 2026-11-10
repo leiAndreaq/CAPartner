@@ -3,6 +3,7 @@ import SplashScreen from './components/SplashScreen';
 import LoginPage from './components/LoginPage';
 import Sidebar from './components/layout/Sidebar';
 import Navbar from './components/layout/Navbar';
+// Inalis na ang import ng Overview dahil hindi na ito gagamitin
 import Monitoring from './components/Monitoring';
 import Camera from './components/Camera';
 import ActivityLog from './components/ActivityLog';
@@ -11,16 +12,16 @@ import AdminSettings from './components/AdminSettings';
 import { AlertTriangle, VideoOff, BatteryWarning, Radio, X } from 'lucide-react';
 
 function App() {
-  // ==========================================================
-  // 1. STATE MANAGEMENT (Navigation, Auth, & Layout Controls)
-  // ==========================================================
+  // The app starts in a splash/login flow. Once authenticated, the dashboard is shown
+  // and the emergency monitoring states are activated.
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isSplashVisible, setIsSplashVisible] = useState(true);
   const [activePage, setActivePage] = useState('Monitoring');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedAlertId, setSelectedAlertId] = useState(null);
 
-  // Shared Admin Profile State
+  // Admin profile data is stored in the parent app so it can be reused by the sidebar,
+  // navbar, and admin settings page while the user is logged in.
   const [adminProfile, setAdminProfile] = useState({
     name: 'Alex Mendoza',
     username: 'alex.admin',
@@ -29,24 +30,25 @@ function App() {
     avatar: null
   });
 
-  // Dual SOS Alert States: Full-Screen Blurred Modal & Floating Banner
+  // Critical modal and SOS banner are triggered after login to highlight emergencies
+  // and guide the operator to the relevant alert details.
   const [showCriticalModal, setShowCriticalModal] = useState(false);
   const [showSosBanner, setShowSosBanner] = useState(false);
 
-  // Trigger para sa Critical Emergency Alerts: Lilitaw 5 seconds pagka-login
+  // After successful authentication, the app intentionally waits 5 seconds before
+  // presenting the emergency modal and banner to simulate a real monitoring workflow.
   useEffect(() => {
     if (isAuthenticated) {
       const timer = setTimeout(() => {
         setShowCriticalModal(true);
         setShowSosBanner(true);
-      }, 5000); // 5 seconds delay
+      }, 5000);
       return () => clearTimeout(timer);
     }
   }, [isAuthenticated]);
 
-  // ==========================================================
-  // 2. GLOBAL MOCK DATA (Alerts & System Incidents)
-  // ==========================================================
+  // Alert data is centralized here so every module in the dashboard can read from the
+  // same source of truth and update status in real time.
   const [alerts, setAlerts] = useState([
     {
       id: 1, 
@@ -116,29 +118,33 @@ function App() {
     },
   ]);
 
+  // Counts are derived from the current alert list so the sidebar badge and summary
+  // metrics always stay synchronized with the latest data.
   const unacknowledgedCount = alerts.filter(a => a.status === 'Unacknowledged').length;
 
-  // ==========================================================
-  // 3. EVENT HANDLERS
-  // ==========================================================
+  // Updates a specific alert to the acknowledged state after an operator reviews it.
   const handleAcknowledge = (id) => {
     setAlerts(prev => prev.map(a => a.id === id ? { ...a, status: 'Acknowledged' } : a));
   };
 
+  // Marks an alert as resolved once the event has been handled or cleared.
   const handleResolve = (id) => {
     setAlerts(prev => prev.map(a => a.id === id ? { ...a, status: 'Resolved' } : a));
   };
 
+  // Clears all current alerts from the active session view.
   const handleClearAll = () => {
     setAlerts([]);
   };
 
+  // Navigation updates the active module and optionally highlights a specific alert.
   const handleNavigation = (page, alertId = null) => {
     setActivePage(page);
     setSelectedAlertId(alertId || null);
     setIsSidebarOpen(false);
   };
 
+  // Logging out resets the monitoring session and clears emergency overlays.
   const handleLogout = () => {
     setIsAuthenticated(false);
     setActivePage('Monitoring');
@@ -148,9 +154,8 @@ function App() {
     setShowSosBanner(false);
   };
 
-  // ==========================================================
-  // 4. CONDITIONAL RENDERING (Splash & Auth Screens)
-  // ==========================================================
+  // Splash screen is shown only once at startup, then the user is sent directly into
+  // the login experience or the dashboard depending on authentication state.
   if (isSplashVisible) {
     return <SplashScreen onFinish={() => setIsSplashVisible(false)} duration={1800} />;
   }
@@ -159,13 +164,11 @@ function App() {
     return <LoginPage onLoginSuccess={() => setIsAuthenticated(true)} />;
   }
 
-  // ==========================================================
-  // 5. MAIN DASHBOARD RENDER INTERFACE
-  // ==========================================================
   return (
     <div className="relative flex h-[100dvh] w-full overflow-hidden bg-white font-sans">
       
-      {/* Mobile Sidebar Backdrop Overlay */}
+      {/* Mobile overlay: when the sidebar is open on small screens, a dark layer is
+          placed behind it to block interaction with the page and focus attention on navigation. */}
       {isSidebarOpen && (
         <button
           type="button"
@@ -175,7 +178,8 @@ function App() {
         />
       )}
 
-      {/* Sidebar Navigation */}
+      {/* Sidebar navigation remains as the main page switcher across the dashboard. It
+          receives the active page state, alert count, admin profile, and logout callback. */}
       <aside
         className={[
           'fixed inset-y-0 left-0 z-50 shadow-[0_18px_50px_rgba(15,23,42,0.18)] transition-transform duration-300 ease-out lg:static lg:translate-x-0 lg:shadow-none',
@@ -192,19 +196,20 @@ function App() {
         />
       </aside>
 
-      {/* Main Workspace Area */}
+      {/* Main workspace area holds the top navigation and the currently selected view.
+          This section swaps modules like Monitoring, Camera, Activity Log, Alerts, and Settings. */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <Navbar
           activePage={activePage}
           notifications={alerts}
           onNavigate={handleNavigation}
           onClearAll={handleClearAll}
-          onLogout={handleLogout}
           onOpenSidebar={() => setIsSidebarOpen(true)}
           adminProfile={adminProfile}
         />
         
-        {/* Active Page View Switcher */}
+        {/* Content switcher: each dashboard page is conditionally rendered based on the
+            current activePage. This pattern keeps the app shell stable while changing only the main panel. */}
         <div className="relative flex-1 min-w-0 overflow-y-auto overflow-x-hidden bg-[#F8FAF9]">
           {activePage === 'Monitoring' && <Monitoring />}
           {activePage === 'Camera' && <Camera />}
@@ -218,21 +223,17 @@ function App() {
               onClearAll={handleClearAll}
             />
           )}
-          {activePage === 'Personnel Accounts' && <Settings onLogout={handleLogout} />}
           {activePage === 'Admin Account Settings' && (
             <AdminSettings adminProfile={adminProfile} setAdminProfile={setAdminProfile} />
           )}
         </div>
       </div>
 
-      {/* ========================================================== */}
-      {/* 1. FULL-SCREEN BLURRED CRITICAL EMERGENCY MODAL           */}
-      {/* ========================================================== */}
+      {/* Full-screen critical emergency modal is shown after login to dramatize a severity-1
+          situation and direct the operator to inspect the triggering alert in the alerts screen. */}
       {showCriticalModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in duration-300">
           <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border-2 border-red-500 overflow-hidden text-center animate-in zoom-in-95 duration-200">
-            
-            {/* Top Critical Header */}
             <div className="bg-red-600 px-5 py-3 text-white flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping" />
@@ -243,7 +244,6 @@ function App() {
               </span>
             </div>
 
-            {/* Modal Body */}
             <div className="p-6">
               <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
                 <AlertTriangle className="w-8 h-8" />
@@ -278,17 +278,14 @@ function App() {
                 </button>
               </div>
             </div>
-
           </div>
         </div>
       )}
 
-      {/* ========================================================== */}
-      {/* 2. FLOATING SOS NOTIFICATION BANNER (TOP RIGHT)            */}
-      {/* ========================================================== */}
+      {/* Floating SOS banner remains visible as a lightweight emergency notification until
+          the user dismisses it or opens the alerts page to review the incident. */}
       {showSosBanner && !showCriticalModal && (
         <div className="fixed top-20 inset-x-4 sm:inset-x-auto sm:right-6 z-[120] sm:max-w-[420px] rounded-2xl shadow-2xl border-2 border-red-500 bg-white animate-in slide-in-from-top-5 duration-300 overflow-hidden">
-          
           <div className="bg-[#d93636] px-3.5 sm:px-4 py-2 text-white flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
@@ -326,7 +323,6 @@ function App() {
               View in Alerts
             </button>
           </div>
-
         </div>
       )}
 
