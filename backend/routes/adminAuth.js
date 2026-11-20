@@ -58,13 +58,14 @@ router.post('/login', async (req, res) => {
     }
 
     if (!passwordOk) {
-      const count = admin.failed_login_count + 1;
-      const lockNow = count >= settings.max_failed_logins;
-      await pool.query('UPDATE admins SET failed_login_count = $1, is_locked = $2 WHERE id = $3', [
-        count,
-        lockNow,
-        admin.id,
-      ]);
+      // One atomic UPDATE: many guesses sent at the same moment cannot slip past the counter.
+      const bumped = await pool.query(
+        `UPDATE admins SET failed_login_count = failed_login_count + 1,
+           is_locked = (is_locked OR failed_login_count + 1 >= $1)
+         WHERE id = $2 RETURNING is_locked`,
+        [settings.max_failed_logins, admin.id]
+      );
+      const lockNow = bumped.rows[0].is_locked;
       await audit(
         lockNow ? 'admin_locked' : 'admin_login_failed',
         lockNow
@@ -187,11 +188,11 @@ router.post('/verify-code', async (req, res) => {
       return res.status(401).json({ error: 'Invalid or expired code. Please log in again.' });
     }
 
-    const settings = await getSettings();
     await audit('admin_login', 'Admin logged in', { adminId: admin.id });
+    // No time limit: the login lasts until Log out (expiresInMinutes null).
     res.json({
-      token: signAccess(admin.id, settings.auto_signout_minutes),
-      expiresInMinutes: settings.auto_signout_minutes,
+      token: signAccess(admin.id),
+      expiresInMinutes: null,
       admin: { id: admin.id, email: admin.email, fullName: admin.full_name },
     });
   } catch (err) {
@@ -203,6 +204,23 @@ router.post('/verify-code', async (req, res) => {
 // Test route: shows who is logged in. Only works with a full login pass.
 router.get('/me', requireAdmin, (req, res) => {
   res.json({ id: req.admin.id, email: req.admin.email, fullName: req.admin.full_name });
+});
+
+// LOG OUT: every login pass this admin had before now stops working (see requireAdmin).
+router.post('/logout', requireAdmin, async (req, res) => {
+  try {
+    // Written directly (not with audit(), which hides errors): this row is what ends the login.
+    // The time comes from the same clock as the pass's login time (lat), so they compare fairly.
+    await pool.query(
+      `INSERT INTO audit_logs (occurred_at, action_type, description, actor_admin_id)
+       VALUES ($1, 'admin_logout', 'Admin logged out', $2)`,
+      [new Date(), req.admin.id]
+    );
+    res.json({ message: 'Logged out.' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: 'Something went wrong.' });
+  }
 });
 
 module.exports = router;

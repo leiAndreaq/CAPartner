@@ -312,4 +312,165 @@ router.post('/:id/unlock', async (req, res) => {
   }
 });
 
+// Assign or remove the cap. Body: { capCode: 'CAP-002' } or { capCode: null }.
+// The phone shows the assigned cap and sends readings under it.
+router.patch('/:id', async (req, res) => {
+  if (!('capCode' in (req.body || {}))) return res.status(400).json({ error: 'Send capCode (or null to remove the cap).' });
+  const capCode = req.body.capCode === null || req.body.capCode === '' ? null : cleanText(req.body.capCode, 20);
+  if (capCode === undefined || (req.body.capCode !== null && req.body.capCode !== '' && !capCode)) {
+    return res.status(400).json({ error: 'Cap code is not valid.' });
+  }
+
+  const client = await pool.connect();
+  try {
+    if (!UUID_RULE.test(req.params.id)) return res.status(404).json(NOT_FOUND);
+    await client.query('BEGIN');
+    const found = await client.query(
+      `SELECT e.id, e.full_name, e.email, e.cap_id, c.cap_code
+       FROM enforcers e LEFT JOIN caps c ON c.id = e.cap_id
+       WHERE e.id = $1 AND e.is_active FOR UPDATE OF e`,
+      [req.params.id]
+    );
+    const enforcer = found.rows[0];
+    if (!enforcer) {
+      await client.query('ROLLBACK');
+      return res.status(404).json(NOT_FOUND);
+    }
+
+    let capId = null;
+    if (capCode) {
+      const cap = await client.query(
+        `SELECT c.id, e.id AS taken_by, e.full_name AS taken_by_name
+         FROM caps c LEFT JOIN enforcers e ON e.cap_id = c.id
+         WHERE c.cap_code = $1 FOR UPDATE OF c`,
+        [capCode]
+      );
+      if (cap.rowCount === 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'That cap does not exist.' });
+      }
+      if (cap.rows[0].taken_by && cap.rows[0].taken_by !== enforcer.id) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: `That cap already belongs to ${cap.rows[0].taken_by_name}.` });
+      }
+      capId = cap.rows[0].id;
+    }
+
+    if (capId === enforcer.cap_id) {
+      await client.query('ROLLBACK');
+      return res.json({ message: 'No change.', capCode });
+    }
+    await client.query('UPDATE enforcers SET cap_id = $1 WHERE id = $2', [capId, enforcer.id]);
+    await client.query('COMMIT');
+
+    await audit(
+      capCode ? 'enforcer_cap_assigned' : 'enforcer_cap_removed',
+      capCode
+        ? `Admin assigned ${capCode} to ${enforcer.email}${enforcer.cap_code ? ` (was ${enforcer.cap_code})` : ''}`
+        : `Admin removed ${enforcer.cap_code} from ${enforcer.email}`,
+      { adminId: req.admin.id, targetEnforcerId: enforcer.id }
+    );
+    res.json({
+      message: capCode ? `${capCode} is now assigned to ${enforcer.full_name}.` : `${enforcer.full_name} has no cap now.`,
+      capCode,
+    });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    if (err.code === '23505') return res.status(409).json({ error: 'That cap already belongs to another enforcer.' });
+    console.error(err.message);
+    res.status(500).json({ error: 'Something went wrong.' });
+  } finally {
+    client.release();
+  }
+});
+
+// Vitals: latest reading and the heart rate / body temperature history.
+//   ?from=ISO&to=ISO  (default: the last 8 hours; at most 31 days)
+// Up to 24 hours every reading is returned; longer ranges are averaged into about 500 time buckets.
+// Works for deleted (hidden) enforcers too, so their history can still be read.
+const MAX_RANGE_MS = 31 * 24 * 60 * 60 * 1000;
+router.get('/:id/telemetry', async (req, res) => {
+  try {
+    if (!UUID_RULE.test(req.params.id)) return res.status(404).json(NOT_FOUND);
+    const to = req.query.to ? new Date(String(req.query.to)) : new Date();
+    const from = req.query.from ? new Date(String(req.query.from)) : new Date(to.getTime() - 8 * 3600 * 1000);
+    if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || from >= to) {
+      return res.status(400).json({ error: 'from and to must be valid times, with from before to.' });
+    }
+    if (to - from > MAX_RANGE_MS) return res.status(400).json({ error: 'Choose a range of 31 days or less.' });
+
+    const found = await pool.query(
+      `SELECT e.id, e.full_name, e.badge_no, e.is_active, c.cap_code, c.battery_pct, c.connection, c.last_sync_at
+       FROM enforcers e LEFT JOIN caps c ON c.id = e.cap_id WHERE e.id = $1`,
+      [req.params.id]
+    );
+    const enforcer = found.rows[0];
+    if (!enforcer) return res.status(404).json(NOT_FOUND);
+
+    const latest = (
+      await pool.query(
+        `SELECT recorded_at, heart_rate_bpm, body_temp_c, motion, latitude, longitude, battery_pct, connection
+         FROM telemetry WHERE enforcer_id = $1 ORDER BY recorded_at DESC LIMIT 1`,
+        [enforcer.id]
+      )
+    ).rows[0];
+
+    const rangeSeconds = (to - from) / 1000;
+    const bucketSeconds = rangeSeconds <= 24 * 3600 ? 0 : Math.ceil(rangeSeconds / 500);
+    const points = bucketSeconds === 0
+      ? await pool.query(
+          `SELECT recorded_at AS t, heart_rate_bpm AS hr, body_temp_c AS temp
+           FROM telemetry
+           WHERE enforcer_id = $1 AND recorded_at >= $2 AND recorded_at <= $3
+           ORDER BY recorded_at`,
+          [enforcer.id, from, to]
+        )
+      : await pool.query(
+          `SELECT date_bin(make_interval(secs => $4), recorded_at, TIMESTAMPTZ '2000-01-01') AS t,
+                  round(avg(heart_rate_bpm))::int AS hr, round(avg(body_temp_c), 1) AS temp
+           FROM telemetry
+           WHERE enforcer_id = $1 AND recorded_at >= $2 AND recorded_at <= $3
+           GROUP BY 1 ORDER BY 1`,
+          [enforcer.id, from, to, bucketSeconds]
+        );
+
+    const limits = (
+      await pool.query('SELECT heart_rate_max_bpm, body_temp_max_c FROM app_settings WHERE id = 1')
+    ).rows[0];
+
+    res.json({
+      enforcer: {
+        id: enforcer.id,
+        fullName: enforcer.full_name,
+        badgeNo: enforcer.badge_no,
+        isActive: enforcer.is_active,
+        capCode: enforcer.cap_code,
+        batteryPct: enforcer.battery_pct,
+        connection: enforcer.connection,
+        lastSyncAt: enforcer.last_sync_at,
+      },
+      latest: latest
+        ? {
+            recordedAt: latest.recorded_at,
+            heartRateBpm: latest.heart_rate_bpm,
+            bodyTempC: latest.body_temp_c === null ? null : Number(latest.body_temp_c),
+            motion: latest.motion,
+            latitude: latest.latitude === null ? null : Number(latest.latitude),
+            longitude: latest.longitude === null ? null : Number(latest.longitude),
+            batteryPct: latest.battery_pct,
+            connection: latest.connection,
+          }
+        : null,
+      from,
+      to,
+      bucketSeconds,
+      points: points.rows.map((p) => ({ t: p.t, hr: p.hr, temp: p.temp === null ? null : Number(p.temp) })),
+      limits: { heartRateMaxBpm: limits.heart_rate_max_bpm, bodyTempMaxC: Number(limits.body_temp_max_c) },
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: 'Something went wrong.' });
+  }
+});
+
 module.exports = router;
