@@ -1,0 +1,35 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="110" height="92" viewBox="0 0 110 92" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="SVG">
+<g clip-path="url(#clip0_0_15)">
+<path id="Vector" d="M-37 0H147V92H-37V0Z" fill="#EDEFEC"/>
+<path id="Vector_2" opacity="0.6" d="M-37 0H147V92H-37V0Z" fill="#E3E8E2"/>
+<path id="Vector_3" d="M-29.525 6.9H13.025C13.9777 6.9 14.75 7.67231 14.75 8.625V29.325C14.75 30.2777 13.9777 31.05 13.025 31.05H-29.525C-30.4777 31.05 -31.25 30.2777 -31.25 29.325V8.625C-31.25 7.67231 -30.4777 6.9 -29.525 6.9Z" fill="#DCE1DA"/>
+<path id="Vector_4" d="M95.825 4.6H134.925C135.878 4.6 136.65 5.37231 136.65 6.325V30.475C136.65 31.4277 135.878 32.2 134.925 32.2H95.825C94.8723 32.2 94.1 31.4277 94.1 30.475V6.325C94.1 5.37231 94.8723 4.6 95.825 4.6Z" fill="#DCE1DA"/>
+<path id="Vector_5" d="M-27.225 62.1H10.725C11.6777 62.1 12.45 62.8723 12.45 63.825V86.825C12.45 87.7777 11.6777 88.55 10.725 88.55H-27.225C-28.1777 88.55 -28.95 87.7777 -28.95 86.825V63.825C-28.95 62.8723 -28.1777 62.1 -27.225 62.1Z" fill="#DCE1DA"/>
+<path id="Vector_6" d="M96.975 59.8H137.225C138.178 59.8 138.95 60.5723 138.95 61.525V86.825C138.95 87.7777 138.178 88.55 137.225 88.55H96.975C96.0223 88.55 95.25 87.7777 95.25 86.825V61.525C95.25 60.5723 96.0223 59.8 96.975 59.8Z" fill="#DCE1DA"/>
+<g id="Vector_7">
+<path d="M-37 44.85H147Z" fill="black"/>
+<path d="M-37 44.85H147" stroke="white" stroke-width="26" stroke-linecap="round"/>
+</g>
+<g id="Vector_8">
+<path d="M55 0V92Z" fill="black"/>
+<path d="M55 0V92" stroke="white" stroke-width="20" stroke-linecap="round"/>
+</g>
+<g id="Vector_9" opacity="0.35">
+<path d="M-37 44.85H147Z" fill="black"/>
+<path d="M-37 44.85H147" stroke="#006E33" stroke-width="2" stroke-linecap="round"/>
+</g>
+<g id="Vector_10">
+<path d="M20.5 0V92Z" fill="black"/>
+<path d="M20.5 0V92" stroke="#F1F3F0" stroke-width="8" stroke-linecap="round"/>
+</g>
+<path id="Vector_11" opacity="0.14" d="M40.05 44.85C40.05 36.5933 46.7433 29.9 55 29.9C63.2567 29.9 69.95 36.5933 69.95 44.85C69.95 53.1067 63.2567 59.8 55 59.8C46.7433 59.8 40.05 53.1067 40.05 44.85Z" fill="#006E33"/>
+<path id="Vector_12" d="M49.83 44.845C49.83 41.9869 52.1469 39.67 55.005 39.67C57.8631 39.67 60.18 41.9869 60.18 44.845C60.18 47.7031 57.8631 50.02 55.005 50.02C52.1469 50.02 49.83 47.7031 49.83 44.845Z" fill="#006E33" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+</g>
+</g>
+<defs>
+<clipPath id="clip0_0_15">
+<rect width="110" height="92" rx="24" fill="white"/>
+</clipPath>
+</defs>
+</svg>
