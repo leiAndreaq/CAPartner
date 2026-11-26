@@ -1,0 +1,365 @@
+/* CAPARTNER LOOK: ONE SET OF COLORS, SIZES AND CARD STYLES FOR EVERY PAGE.
+   Pages use these classes (ui-...) instead of repeating their own styles. */
+
+:root {
+  --green-900: #022a12;
+  --green-800: #033015;
+  --green-700: #053d1c;
+  --green-600: #0b5a2b;
+  --green-accent: #22c55e;
+  --green-soft: #dcfce7;
+
+  /* From the Figma design (CAPSTONE-PROTOTYPE) */
+  --green-bright: #26ff00;   /* active nav link, "Normal" and "Online" text on dark green */
+  --green-link: #006e33;     /* green captions and the map frame */
+  --nav-text: #7d8ea3;       /* inactive nav links, "Offline" text */
+
+  --red: #ef4444;
+  --red-soft: #fee2e2;
+  --amber: #f59e0b;
+  --amber-text: #8a5a08;
+  --amber-soft: #fef8ec;
+  --grey: #7d8ea3;
+  --grey-soft: #f1f5f9;
+
+  --text: #1a1a1a;
+  --text-muted: #6e6e6e;
+  --border: #dedfde;
+  --divider: #edeeed;
+  --page-bg: #f7f9f8;
+  --card-bg: #ffffff;
+
+  /* Figma: dark cards 16px, white panels 12px, small buttons 8px */
+  --radius: 16px;
+  --radius-small: 8px;
+  --shadow: 0 1px 3px rgba(16, 24, 40, 0.1), 0 4px 12px rgba(16, 24, 40, 0.06);
+  --shadow-dark-card: 0 12px 30px rgba(0, 0, 0, 0.35);
+  --header-height: 84px;
+
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace;
+}
+
+/* PAGE FRAME */
+.ui-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--page-bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.ui-main {
+  flex: 1;
+  width: 100%;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 28px 24px 48px;
+  box-sizing: border-box;
+}
+
+.ui-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+/* Page titles in bold capitals, like DASHBOARD / ACCOUNT in the phone app */
+.ui-title {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--green-800);
+}
+
+.ui-greeting {
+  margin: 0 0 2px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--green-600);
+}
+
+/* Small grey section labels, like SMART CAP / PRIVACY in the phone app */
+.ui-label {
+  margin: 0 0 10px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.ui-subtitle {
+  margin: 4px 0 0;
+  font-size: 0.92rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.ui-section-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+/* CARDS */
+.ui-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.ui-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ui-card-body {
+  padding: 16px 20px;
+}
+
+/* BUTTONS AND LINKS */
+.ui-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  color: var(--green-800);
+  border-radius: var(--radius-small);
+  padding: 8px 14px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.ui-button:hover {
+  background: var(--grey-soft);
+}
+
+.ui-button-primary {
+  background: var(--green-800);
+  border-color: var(--green-800);
+  color: #ffffff;
+}
+
+.ui-button-primary:hover {
+  background: var(--green-600);
+}
+
+.ui-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--green-600);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.ui-link:hover {
+  text-decoration: underline;
+}
+
+/* STATUS PILLS */
+.ui-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 9999px;
+  padding: 3px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ui-pill::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.ui-pill-normal { background: var(--green-soft); color: #15803d; }
+.ui-pill-attention { background: var(--amber-soft); color: #b45309; }
+.ui-pill-offline { background: var(--grey-soft); color: #64748b; }
+.ui-pill-danger { background: var(--red-soft); color: #b91c1c; }
+
+/* CAPITAL TAGS, like CONNECTED / DISCONNECTED in the phone app */
+.ui-tag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  padding: 3px 12px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ui-tag-green { background: #bbf7c9; color: #166534; }
+.ui-tag-red { background: #fecaca; color: #b91c1c; }
+.ui-tag-amber { background: #fde68a; color: #92400e; }
+.ui-tag-grey { background: #e2e8f0; color: #475569; }
+
+/* DARK GREEN HERO CARD, like the Heart Rate card in the phone app */
+.ui-hero {
+  background: var(--green-700);
+  color: #ffffff;
+  border-radius: var(--radius);
+  box-shadow: 0 10px 24px rgba(3, 48, 21, 0.25);
+  padding: 20px 22px;
+}
+
+.ui-hero .ui-label {
+  color: #a7d7b8;
+}
+
+/* ICON IN A SOFT COLORED SQUARE, like the Battery / Connection rows in the phone app */
+.ui-icon-tile {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ui-tile-green { background: #dcfce7; color: #15803d; }
+.ui-tile-amber { background: #fef3c7; color: #b45309; }
+.ui-tile-red { background: #fee2e2; color: #b91c1c; }
+.ui-tile-blue { background: #dbeafe; color: #1d4ed8; }
+.ui-tile-grey { background: #f1f5f9; color: #64748b; }
+
+/* BATTERY BAR (yellow like the phone app, red when low) */
+.ui-progress {
+  height: 8px;
+  border-radius: 9999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.ui-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: 9999px;
+  background: #eab308;
+}
+
+.ui-progress.ui-progress-low > span {
+  background: var(--red);
+}
+
+/* FRIENDLY EMPTY MESSAGE: icon in a soft circle, bold line, grey line */
+.ui-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  padding: 28px 20px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.ui-empty-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #e8f5ec;
+  color: var(--green-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.ui-empty strong {
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+/* MESSAGES */
+.ui-message {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: var(--radius-small);
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.ui-message-error { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; }
+.ui-message-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+
+/* LOADING PLACEHOLDER */
+.ui-skeleton {
+  display: inline-block;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: ui-shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes ui-shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-skeleton { animation: none; }
+}
+
+/* FOOTER */
+.ui-footer {
+  margin-top: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 106px;
+  padding: 18px 24px;
+  background: var(--green-700);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 1.92px;
+  text-align: center;
+}
+
+/* Room for the phone bottom menu */
+@media (max-width: 767px) {
+  .ui-main {
+    padding: 20px 16px 28px;
+  }
+  .ui-title {
+    font-size: 1.5rem;
+  }
+  .ui-footer {
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+    font-size: 13px;
+    letter-spacing: 1px;
+  }
+}

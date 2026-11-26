@@ -1,0 +1,258 @@
+/* ONE ENFORCER: Vitals, Unit status and Location cards, from the Figma design. */
+
+.vp-card {
+  background: #ffffff;
+  border: 1.25px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 4px 2px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.vp-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1.25px solid var(--divider);
+}
+
+.vp-head-plain {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.vp-head h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.375px;
+  color: var(--text);
+}
+
+.vp-head p {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+/* Latest heart rate and temperature, big and red like the design */
+.vp-now {
+  display: flex;
+  gap: 32px;
+}
+
+.vp-now > div {
+  text-align: right;
+}
+
+.vp-now-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.88px;
+  color: var(--text-muted);
+}
+
+.vp-now-value {
+  font-family: 'Roboto Mono', var(--font-mono);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 32px;
+  color: #d32f2f;
+}
+
+.vp-now small {
+  margin-left: 4px;
+  font-family: 'Roboto Mono', var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.vp-body {
+  padding: 16px 20px 20px;
+}
+
+/* Time range buttons */
+.vp-ranges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.vp-range {
+  min-height: 28px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 5px;
+  background: var(--divider);
+  color: var(--green-700);
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+}
+
+.vp-range.is-active {
+  background: var(--green-700);
+  color: #ffffff;
+}
+
+.vp-ranges input {
+  min-height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+}
+
+.vp-to {
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.vp-error {
+  margin-bottom: 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--red);
+}
+
+.vp-chart-title {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #565656;
+}
+
+.vp-chart-title-next {
+  margin-top: 16px;
+}
+
+.vp-chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* Unit status rows */
+.vp-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.vp-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-height: 40px;
+  border-top: 1.25px solid var(--divider);
+}
+
+.vp-row:first-child {
+  border-top: none;
+}
+
+.vp-row > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.vp-row > b {
+  font-family: 'Roboto Mono', var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
+  color: var(--text);
+}
+
+.vp-capitalize {
+  text-transform: capitalize;
+}
+
+.vp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.66px;
+}
+
+.vp-chip-green { background: #f0f8f3; color: #005a2a; }
+.vp-chip-amber { background: var(--amber-soft); color: var(--amber-text); }
+.vp-chip-grey { background: var(--grey-soft); color: var(--text-muted); }
+
+.vp-links {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.vp-links button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 41px;
+  border: 1.25px solid var(--border);
+  border-radius: 6px;
+  background: #ffffff;
+  color: #3d3d3d;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.vp-links button:hover {
+  background: var(--page-bg);
+}
+
+/* Location */
+.vp-map {
+  height: 240px;
+  margin-top: 12px;
+  border-top: 1.25px solid var(--divider);
+  border-bottom: 1.25px solid var(--divider);
+  background: #e5e7eb;
+  isolation: isolate;
+}
+
+.vp-no-map {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #565656;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.vp-at {
+  margin: 0;
+  padding: 13px 20px;
+  font-size: 12.5px;
+  color: #565656;
+}
+
+@media (max-width: 560px) {
+  .vp-now { gap: 20px; }
+  .vp-now-value { font-size: 22px; }
+}

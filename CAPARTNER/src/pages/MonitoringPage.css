@@ -1,0 +1,792 @@
+/* MONITORING PAGE, from the Figma design. Colors and fonts come from styles/theme.css.
+   The phone layout of the table (cards) lives in index.css and uses the monitoring-... class names. */
+
+.mon-page {
+  background: #ffffff;
+}
+
+.monitoring-header {
+  margin-bottom: 28px;
+}
+
+.monitoring-title {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--green-700);
+}
+
+.monitoring-subtitle {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #005a2a;
+}
+
+/* FILTER TABS + ADD ENFORCER */
+.monitoring-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.monitoring-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.monitoring-filter-btn {
+  min-width: 80px;
+  min-height: 35px;
+  height: 35px;
+  padding: 0 24px;
+  border: none;
+  border-radius: 5px;
+  background: var(--divider);
+  color: var(--green-700);
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+
+.monitoring-filter-btn.is-active {
+  background: var(--green-700);
+  color: #ffffff;
+}
+
+.monitoring-add-btn {
+  min-height: 48px;
+  height: 48px;
+  padding: 0 28px;
+  border: none;
+  border-radius: 20px;
+  background: var(--green-700);
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 700;
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+
+.monitoring-add-btn:disabled {
+  background: var(--nav-text);
+  cursor: not-allowed;
+}
+
+/* ENFORCER TABLE */
+.monitoring-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.5);
+}
+
+.monitoring-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  text-align: center;
+  font-size: 16px;
+  color: var(--green-700);
+}
+
+.monitoring-table thead tr {
+  background: var(--green-700);
+  color: #ffffff;
+}
+
+.monitoring-table th {
+  height: 59px;
+  padding: 0 16px;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.monitoring-table th:not(:last-child),
+.monitoring-table td:not(:last-child) {
+  border-right: 1px solid var(--green-700);
+}
+
+.monitoring-table thead th:not(:last-child) {
+  border-right-color: rgba(255, 255, 255, 0.25);
+}
+
+.monitoring-table tbody tr {
+  height: 96px;
+}
+
+.monitoring-table tbody tr + tr {
+  border-top: 2px solid var(--green-700);
+}
+
+.monitoring-table td {
+  padding: 0 16px;
+  font-weight: 600;
+}
+
+.mon-strong {
+  font-weight: 800;
+}
+
+.mon-email {
+  font-weight: 500;
+  text-decoration: underline;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mon-empty {
+  padding: 32px 16px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.mon-actions {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+
+/* View / Delete pills in the table, ADD / CLEAR pills in the form */
+.mon-pill,
+.mon-pill-large {
+  border: 1px solid var(--green-700);
+  border-radius: 20px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mon-pill {
+  min-height: 23px;
+  height: 23px;
+  width: 74px;
+  padding: 0;
+  font-size: 12px;
+}
+
+.mon-pill-large {
+  min-height: 28px;
+  height: 28px;
+  width: 103px;
+  padding: 0;
+  border-width: 2px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.725px;
+}
+
+.mon-pill-solid {
+  background: var(--green-700);
+  color: #ffffff;
+}
+
+.mon-pill-outline {
+  background: #ffffff;
+  color: var(--green-700);
+}
+
+.mon-pill:disabled,
+.mon-pill-large:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.mon-close-text {
+  background: none;
+  border: none;
+  color: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+/* ONE ENFORCER (cards under the vitals) */
+.mon-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.mon-card {
+  padding: 16px 20px 20px;
+  background: #ffffff;
+  border: 1.25px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 4px 2px rgba(0, 0, 0, 0.5);
+}
+
+.mon-card h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.375px;
+  color: var(--text);
+}
+
+.mon-card-sub {
+  margin: 2px 0 16px;
+  padding-bottom: 12px;
+  border-bottom: 1.25px solid var(--divider);
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.mon-muted {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.mon-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 0.85rem;
+}
+
+.mon-facts > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.mon-facts span,
+.mon-facts label {
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.mon-facts b {
+  font-weight: 800;
+  color: var(--text);
+}
+
+.mon-facts b.mon-bad {
+  color: var(--red);
+}
+
+.mon-tag {
+  padding: 4px 16px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.mon-tag-green { background: var(--green-soft); color: #15803d !important; }
+.mon-tag-red { background: var(--red-soft); color: #b91c1c !important; }
+
+.mon-select-small {
+  min-height: 35px;
+  padding: 4px 12px;
+  border: 1px solid var(--green-700);
+  border-radius: 5px;
+  background: #ffffff;
+  color: var(--green-700);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mon-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.mon-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1.5px solid var(--green-700);
+  border-radius: 20px;
+  background: #ffffff;
+  color: var(--green-700);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mon-button-danger {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.mon-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* ADD NEW ENFORCER FORM */
+.mon-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1250;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.mon-modal {
+  width: 100%;
+  max-width: 555px;
+  margin: auto;
+  background: #ffffff;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.mon-modal-head {
+  position: relative;
+  padding: 20px 56px 20px;
+  background: var(--green-700);
+  color: #ffffff;
+  text-align: center;
+}
+
+.mon-modal-head h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.725px;
+}
+
+.mon-modal-head p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  font-weight: 300;
+  letter-spacing: -0.725px;
+}
+
+.mon-modal-close {
+  position: absolute;
+  top: 24px;
+  right: 22px;
+  width: 32px;
+  height: 35px;
+  min-height: 35px;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.mon-modal-close img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.mon-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 62px 28px;
+}
+
+.mon-form h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.725px;
+  color: var(--green-700);
+}
+
+.mon-form label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.725px;
+  color: var(--green-700);
+}
+
+.mon-form input,
+.mon-form select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.mon-form input {
+  height: 43px;
+  padding: 0 18px;
+  border: 1px solid var(--green-700);
+  border-radius: 5px;
+  background: #ffffff;
+  box-shadow: inset 0 4px 4px rgba(0, 0, 0, 0.25);
+  font-size: 12px;
+  outline: none;
+}
+
+.mon-form input::placeholder {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.mon-form input:focus,
+.mon-form select:focus {
+  outline: 2px solid var(--green-bright);
+  outline-offset: 1px;
+}
+
+.mon-form-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 4px;
+  text-align: center;
+}
+
+.mon-form select {
+  min-height: 35px;
+  height: 35px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 5px;
+  background: #fff9f9;
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25), inset 0 4px 4px rgba(0, 0, 0, 0.25);
+  font-size: 10px;
+  color: #000000;
+  text-align: center;
+  cursor: pointer;
+}
+
+.mon-form-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  background: #fef2f2;
+  color: #dc2626;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.mon-form-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.mon-modal-foot {
+  height: 25px;
+  background: var(--green-700);
+}
+
+@media (max-width: 560px) {
+  .mon-form { padding: 16px 20px 24px; }
+  .mon-form-pair { gap: 12px; }
+  .mon-modal-head { padding: 20px 48px; }
+}
+
+/* ---- PROFESSIONAL POLISH (same colors) ---- */
+
+.monitoring-header {
+  padding-bottom: 20px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.monitoring-title {
+  font-size: 28px;
+  letter-spacing: -0.01em;
+}
+
+.monitoring-subtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.monitoring-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.monitoring-summary b {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--green-700);
+}
+
+.monitoring-summary .is-bad,
+.monitoring-summary .is-bad b {
+  color: var(--red);
+}
+
+.monitoring-controls {
+  margin-bottom: 24px;
+}
+
+.monitoring-filter-btn {
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.12);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.monitoring-filter-btn:not(.is-active):hover {
+  background: #e2e4e2;
+}
+
+.monitoring-add-btn {
+  font-size: 15px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(5, 61, 28, 0.3);
+}
+
+/* Table: clean horizontal lines, left-aligned text, hover row */
+.monitoring-table-wrap {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.monitoring-table {
+  text-align: left;
+  font-size: 14px;
+}
+
+.monitoring-table th {
+  height: 52px;
+  padding: 0 16px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.monitoring-table th:not(:last-child),
+.monitoring-table td:not(:last-child),
+.monitoring-table thead th:not(:last-child) {
+  border-right: none;
+}
+
+.monitoring-table tbody tr {
+  height: 72px;
+  transition: background 0.12s ease;
+}
+
+.monitoring-table tbody tr + tr {
+  border-top: 1px solid var(--divider);
+}
+
+.monitoring-table tbody tr:hover {
+  background: var(--page-bg);
+}
+
+.monitoring-table td {
+  padding: 0 16px;
+  font-weight: 500;
+}
+
+.monitoring-table th:first-child,
+.monitoring-table td:first-child,
+.monitoring-table th:last-child,
+.monitoring-table td:last-child {
+  text-align: center;
+}
+
+.mon-strong {
+  font-weight: 700;
+}
+
+.mon-email {
+  text-decoration: none;
+  color: var(--green-link);
+}
+
+.mon-name {
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.mon-name-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mon-name-inner > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-avatar {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--green-700);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.mon-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.mon-status::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.mon-status.is-green { background: var(--green-soft); color: #15803d; }
+.mon-status.is-red { background: var(--red-soft); color: #b91c1c; }
+.mon-status.is-grey { background: var(--grey-soft); color: var(--text-muted); }
+
+.mon-pill {
+  height: 28px;
+  min-height: 28px;
+  font-size: 12px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.mon-pill-outline:hover:not(:disabled) {
+  background: var(--red-soft);
+  border-color: var(--red);
+  color: #b91c1c;
+}
+
+.mon-pill-solid:hover {
+  background: var(--green-600);
+}
+
+/* Detail cards */
+.mon-card {
+  box-shadow: var(--shadow);
+}
+
+.mon-card h3 {
+  font-size: 16px;
+}
+
+/* ---- USE THE WHOLE SCREEN WIDTH ---- */
+.monitoring-main.ui-main {
+  max-width: none;
+  padding: 24px 40px 40px;
+}
+
+@media (max-width: 640px) {
+  .monitoring-main.ui-main { padding: 20px 12px 32px; }
+}
+
+/* ---- ADD NEW ENFORCER FORM: larger, easier to read ---- */
+.mon-modal {
+  max-width: 620px;
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+}
+
+.mon-modal-head {
+  padding: 26px 64px 22px;
+}
+
+.mon-modal-head h2 {
+  font-size: 28px;
+  letter-spacing: -0.01em;
+}
+
+.mon-modal-head p {
+  margin-top: 6px;
+  font-size: 15px;
+}
+
+.mon-form {
+  gap: 18px;
+  padding: 24px 56px 32px;
+}
+
+.mon-form h3 {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--divider);
+  font-size: 16px;
+  letter-spacing: 0;
+}
+
+.mon-form label {
+  margin-bottom: 8px;
+  font-size: 15px;
+  letter-spacing: 0;
+}
+
+.mon-form input {
+  height: 48px;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-size: 15px;
+}
+
+.mon-form input::placeholder {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.mon-form-pair {
+  gap: 20px;
+  text-align: left;
+}
+
+.mon-form select {
+  height: 46px;
+  min-height: 46px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-size: 15px;
+  text-align: left;
+}
+
+.mon-form-error {
+  font-size: 14px;
+}
+
+.mon-form-buttons {
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.mon-pill-large {
+  width: 140px;
+  height: 44px;
+  min-height: 44px;
+  border-radius: 10px;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 560px) {
+  .mon-form { padding: 20px 20px 26px; }
+  .mon-modal-head { padding: 22px 48px 18px; }
+  .mon-modal-head h2 { font-size: 24px; }
+}

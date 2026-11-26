@@ -1,0 +1,311 @@
+/* SETTINGS PAGE, from the Figma design. Colors and fonts come from styles/theme.css.
+   settings-main / settings-grid / settings-stack are also used by the phone rules in index.css. */
+
+.set-page {
+  background: #ffffff;
+}
+
+.set-page .ui-title {
+  font-weight: 800;
+  color: var(--green-700);
+}
+
+.set-page .ui-subtitle {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--green-700);
+}
+
+.set-close {
+  background: none;
+  border: none;
+  color: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.set-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 32px;
+  align-items: start;
+}
+
+/* LEFT: dark green card */
+.set-dark {
+  padding: 24px 24px 28px;
+  background: var(--green-700);
+  color: #ffffff;
+  border: 0.8px solid #24303d;
+  border-radius: 16px;
+}
+
+.set-dark h2 {
+  margin: 0;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: #e6edf5;
+}
+
+.set-dark-note {
+  margin: 6px 0 0;
+  text-align: center;
+  font-size: 12px;
+  color: #ffffff;
+}
+
+.set-dark form {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  margin-top: 22px;
+}
+
+.set-dark fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.set-dark legend {
+  margin-bottom: 2px;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.set-dark fieldset .set-dark-note {
+  margin: 0;
+  text-align: left;
+  color: #cfe5d7;
+}
+
+.set-field label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.set-field label span {
+  color: #cfe5d7;
+}
+
+.set-field input {
+  width: 100%;
+  height: 42px;
+  padding: 0 14px;
+  box-sizing: border-box;
+  border: 0.8px solid #24303d;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  outline: none;
+}
+
+.set-field input:focus {
+  outline: 2px solid var(--green-bright);
+  outline-offset: 1px;
+}
+
+.set-field input[aria-invalid='true'] {
+  box-shadow: 0 0 0 2px #f87171;
+}
+
+.set-field-error {
+  margin-top: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #fecaca;
+}
+
+.set-save {
+  text-align: center;
+}
+
+.set-save button {
+  min-height: 40px;
+  padding: 0 28px;
+  border: none;
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--green-700);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.set-save button:disabled {
+  cursor: wait;
+}
+
+/* RIGHT: white cards */
+.set-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.set-card {
+  background: #ffffff;
+  border: 1.25px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 1px 1.5px rgba(26, 26, 26, 0.06), 0 1px 1px rgba(26, 26, 26, 0.04);
+  overflow: hidden;
+}
+
+.set-card-head {
+  padding: 16px 20px;
+  border-bottom: 1.25px solid var(--divider);
+}
+
+.set-card-head h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.375px;
+  color: var(--text);
+}
+
+.set-card-note {
+  margin: 0;
+  padding: 10px 20px 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.set-pref {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-top: 1.25px solid var(--divider);
+}
+
+.set-card-head + .set-card-note + .set-pref {
+  margin-top: 10px;
+}
+
+.set-pref b {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.set-pref span {
+  display: block;
+  margin-top: 1px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* On / off switch */
+.set-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  min-height: 24px;
+  padding: 0;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 9999px;
+  background: #c4c6c4;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.set-switch.is-on {
+  background: var(--green-link);
+}
+
+.set-switch span {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  transition: left 0.2s ease;
+}
+
+.set-switch.is-on span {
+  left: 22px;
+}
+
+.set-switch:disabled {
+  cursor: wait;
+}
+
+.set-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 20px 20px;
+  font-size: 13px;
+}
+
+.set-profile div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.set-profile span {
+  color: var(--text-muted);
+}
+
+.set-profile b {
+  font-weight: 600;
+  text-align: right;
+  word-break: break-word;
+}
+
+/* End session */
+.set-session {
+  padding: 20px;
+  text-align: center;
+}
+
+.set-session h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.375px;
+  color: var(--text);
+}
+
+.set-session p {
+  margin: 12px 0 16px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.set-session button {
+  width: 100%;
+  min-height: 39px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  border: 0.8px solid rgba(239, 68, 68, 0.4);
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--red);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.set-session small {
+  font-size: 12px;
+  color: var(--text-muted);
+}

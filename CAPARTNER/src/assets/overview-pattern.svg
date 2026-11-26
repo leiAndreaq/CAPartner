@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+  <!-- CAPartner background: overlapping diagonal green shapes (drawn for this project, no stock image).
+       The light part is on the LEFT (toned down so white text stays readable); the right side stays dark green. -->
+  <defs>
+    <linearGradient id="base" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0a4f19"/>
+      <stop offset="0.55" stop-color="#063d15"/>
+      <stop offset="1" stop-color="#042a0e"/>
+    </linearGradient>
+    <linearGradient id="bright" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#2c8f2b"/>
+      <stop offset="1" stop-color="#17701f"/>
+    </linearGradient>
+    <linearGradient id="mid" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#21812a"/>
+      <stop offset="1" stop-color="#0e5a19"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#base)"/>
+
+  <!-- the crossing "X" of two diamonds, top left -->
+  <polygon points="300,-200 750,250 300,700 -150,250" fill="url(#bright)" opacity="0.8"/>
+  <polygon points="520,-220 920,180 520,580 120,180" fill="url(#mid)" opacity="0.65"/>
+
+  <!-- long diagonal bands rising from the bottom left -->
+  <polygon points="-100,900 650,150 900,150 150,900" fill="url(#bright)" opacity="0.5"/>
+  <polygon points="-220,900 380,300 600,520 220,900" fill="url(#mid)" opacity="0.6"/>
+
+  <!-- soft lower-left light -->
+  <polygon points="0,900 0,420 480,900" fill="#2f9a2d" opacity="0.5"/>
+
+  <!-- faint dark band on the right, so the dark side still has some structure -->
+  <polygon points="700,900 1600,0 1600,300 1000,900" fill="#0c6b1f" opacity="0.25"/>
+</svg>
