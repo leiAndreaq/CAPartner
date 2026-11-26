@@ -36,13 +36,14 @@ async function checkCurrentPassword(enforcerId, password, settings) {
     await pool.query('UPDATE enforcers SET failed_login_count = 0 WHERE id = $1', [enforcerId]);
     return null;
   }
-  const count = enforcer.failed_login_count + 1;
-  const lockNow = count >= settings.max_failed_logins;
-  await pool.query('UPDATE enforcers SET failed_login_count = $1, is_locked = $2 WHERE id = $3', [
-    count,
-    lockNow,
-    enforcerId,
-  ]);
+  // One atomic UPDATE: many guesses sent at the same moment cannot slip past the counter.
+  const bumped = await pool.query(
+    `UPDATE enforcers SET failed_login_count = failed_login_count + 1,
+       is_locked = (is_locked OR failed_login_count + 1 >= $1)
+     WHERE id = $2 RETURNING is_locked`,
+    [settings.max_failed_logins, enforcerId]
+  );
+  const lockNow = bumped.rows[0].is_locked;
   await audit(
     lockNow ? 'enforcer_locked' : 'enforcer_password_failed',
     lockNow

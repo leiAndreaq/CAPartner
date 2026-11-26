@@ -1,0 +1,335 @@
+/* ACTIVITY LOG PAGE. Colors and fonts come from styles/theme.css. */
+
+.act-page {
+  background: #ffffff;
+}
+
+.act-main.ui-main {
+  max-width: none;
+  padding: 28px 40px 48px;
+}
+
+.act-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding-bottom: 20px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.act-title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--green-700);
+}
+
+.act-subtitle {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.act-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 16px;
+  border: 1.25px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--green-700);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.act-refresh:hover {
+  background: var(--page-bg);
+}
+
+.act-card {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+/* Toolbar: search, type and count */
+.act-toolbar {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.act-search {
+  flex: 1;
+  min-width: 220px;
+  max-width: 380px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1.25px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--text-muted);
+}
+
+.act-search input {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.act-search:focus-within {
+  border-color: var(--green-link);
+}
+
+.act-type {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.act-type span {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.act-type select {
+  min-width: 200px;
+  height: 38px;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1.25px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.act-count {
+  margin: 0 0 0 auto;
+  align-self: center;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* Column headings */
+.act-cols,
+.act-row {
+  display: grid;
+  grid-template-columns: 140px 44px minmax(0, 1fr) 260px;
+  align-items: center;
+  gap: 20px;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+.act-cols {
+  height: 48px;
+  background: var(--green-700);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.act-empty {
+  padding: 48px 32px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* Day separators */
+.act-day {
+  padding: 12px 24px;
+  background: var(--page-bg);
+  border-top: 1px solid var(--divider);
+  border-bottom: 1px solid var(--divider);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--green-700);
+}
+
+.act-list > div:first-child .act-day {
+  border-top: none;
+}
+
+.act-row {
+  min-height: 84px;
+  padding-top: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--divider);
+  transition: background 0.12s ease;
+}
+
+.act-row:hover {
+  background: var(--page-bg);
+}
+
+.act-when {
+  font-family: 'Roboto Mono', var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.act-icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.act-icon-grey { background: var(--divider); }
+.act-icon-green { background: #f0f8f3; }
+.act-icon-amber { background: var(--amber-soft); }
+.act-icon-red { background: #fdf1f1; }
+
+.act-what {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.act-what b {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.act-what span {
+  font-size: 15px;
+  line-height: 22px;
+  color: #565656;
+}
+
+.act-by {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.act-by b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 16px;
+  font-weight: 600;
+  color: #3d3d3d;
+}
+
+.act-by small {
+  font-size: 13px;
+  text-transform: capitalize;
+  color: var(--text-muted);
+}
+
+/* PAGING: "Page 1 of 15" on the left, square buttons on the right */
+.act-paging {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.act-of {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.act-of b {
+  font-weight: 700;
+  color: var(--green-700);
+}
+
+.act-pages {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.act-pages button,
+.act-page-number {
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.act-pages button {
+  background: #ffffff;
+  border: 1.25px solid var(--green-700);
+  color: var(--green-700);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.act-pages button:hover:not(:disabled) {
+  background: var(--green-700);
+  color: #ffffff;
+}
+
+.act-pages button:disabled {
+  border-color: var(--border);
+  color: #c4c6c4;
+  cursor: default;
+}
+
+.act-page-number {
+  background: var(--green-700);
+  border: 1.25px solid var(--green-700);
+  color: #ffffff;
+}
+
+@media (max-width: 900px) {
+  .act-main.ui-main { padding: 20px 12px 32px; }
+  .act-cols { display: none; }
+  .act-row {
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 4px 12px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .act-when { grid-column: 1 / -1; }
+  .act-by { grid-column: 2; flex-direction: row; gap: 8px; align-items: baseline; }
+  .act-count { margin-left: 0; }
+}

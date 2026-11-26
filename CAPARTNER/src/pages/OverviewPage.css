@@ -1,0 +1,686 @@
+/* OVERVIEW PAGE LAYOUT, from the Figma design. Colors and fonts come from styles/theme.css. */
+
+.ov-page {
+  background: var(--page-bg);
+}
+
+.ov-page .ui-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--green-700);
+}
+
+.ov-page .ui-subtitle {
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--green-700);
+}
+
+.ov-updated {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.ov-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green-accent);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+}
+
+.ov-mono {
+  font-family: var(--font-mono);
+}
+
+.ov-mono-alt {
+  font-family: 'Roboto Mono', var(--font-mono);
+}
+
+/* CAP CARDS: dark green, white outline */
+.ov-caps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+.ov-cap {
+  display: flex;
+  flex-direction: column;
+  padding: 22px;
+  background: linear-gradient(180deg, #064a22 0%, var(--green-700) 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 24px rgba(5, 61, 28, 0.22);
+  overflow: hidden;
+}
+
+.ov-cap-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.ov-cap-code {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 30px;
+}
+
+.ov-cap-who {
+  margin: 2px 0 0;
+  font-size: 16px;
+  line-height: 22px;
+  color: #f3f3f3;
+}
+
+/* Status pill: Normal / Attention / Offline */
+.ov-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  border-radius: 9999px;
+  border: 1px solid currentColor;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.ov-status i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.ov-status-normal { color: var(--green-bright); background: rgba(34, 197, 94, 0.2); }
+.ov-status-attention { color: var(--amber); background: rgba(245, 158, 11, 0.2); }
+.ov-status-offline { color: var(--nav-text); background: rgba(125, 142, 163, 0.2); }
+
+/* Status pill with the reasons (like "Open alert") right below it */
+.ov-status-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.ov-reasons {
+  max-width: 180px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 16px;
+  padding-left: 14px;
+  text-align: left;
+  color: var(--amber);
+}
+
+/* Heart rate / Temp / Motion Status */
+.ov-vitals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding-bottom: 24px;
+}
+
+.ov-vital-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 26px;
+  font-size: 13px;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.ov-vital-value {
+  margin-top: 4px;
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 40px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ov-vital-value small {
+  margin-left: 6px;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.ov-vital-over {
+  color: #ff6363;
+}
+
+.ov-vital-motion {
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 40px;
+  text-transform: capitalize;
+}
+
+/* Location / Connection / Last update */
+.ov-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.ov-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.ov-row > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ov-conn-internet { color: var(--green-bright); }
+.ov-conn-lora { color: var(--amber); }
+.ov-conn-offline { color: #ff6363; }
+
+.ov-mini-map {
+  height: 160px;
+  margin-bottom: 16px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #e5e7eb;
+  isolation: isolate; /* keeps the map layers under the menus */
+}
+
+.ov-no-map {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.ov-cap-foot {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ov-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--green-bright);
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.ov-open:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.ov-open:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.ov-battery {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+}
+
+.ov-battery-low {
+  color: #ff6363;
+}
+
+/* LIVE MAP + DEPLOYED POSTS */
+.ov-live {
+  display: grid;
+  grid-template-columns: minmax(0, 800px) 380px;
+  justify-content: start;
+  column-gap: 110px;
+  row-gap: 0;
+  align-items: start;
+  margin-bottom: 48px;
+}
+
+.ov-heading {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--green-700);
+}
+
+.ov-caption {
+  margin: 8px 0 0;
+  font-size: 15px;
+  color: var(--green-link);
+}
+
+.ov-live-map {
+  height: 453px;
+  margin-top: 24px;
+  border: 5px solid var(--green-link);
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(16, 24, 40, 0.16);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.ov-posts {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 26px 0 10px;
+  background: #ffffff;
+  border: 2px solid var(--green-link);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(5, 61, 28, 0.28);
+  overflow: hidden;
+}
+
+.ov-posts-title {
+  margin: 0;
+  padding: 0 24px;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--green-700);
+}
+
+.ov-posts-note {
+  margin: 8px 0 20px;
+  padding: 0 24px;
+  font-size: 14px;
+  line-height: 21px;
+  color: var(--text-muted);
+}
+
+.ov-post {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 88px;
+  padding: 0 24px;
+  border: none;
+  border-top: 1px solid var(--divider);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.ov-post:hover:not(:disabled) {
+  background: var(--page-bg);
+}
+
+.ov-post:disabled {
+  cursor: default;
+}
+
+.ov-post-dot {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ov-post-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ov-post-text b {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.ov-post-text small {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.ov-post-time {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* WHITE PANELS: Recent Alerts, Media queue, Latest admin actions */
+.ov-panels {
+  display: grid;
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.ov-side {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.ov-panel {
+  background: var(--card-bg);
+  border: 1.25px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.ov-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 0 24px;
+  background: var(--green-700);
+  color: #ffffff;
+}
+
+.ov-panel-head h3 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.ov-panel-head button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ov-panel-head button:hover {
+  text-decoration: underline;
+}
+
+.ov-panel-head-small {
+  min-height: 52px;
+}
+
+.ov-panel-head-small h3 {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.ov-panel-body {
+  padding: 20px 22px 24px;
+}
+
+.ov-panel-empty {
+  padding: 32px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.ov-muted {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.ov-big-number {
+  margin: 4px 0 14px;
+  font-family: 'Roboto Mono', var(--font-mono);
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.85px;
+  color: var(--text);
+}
+
+.ov-notice {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 12px;
+  border-radius: 6px;
+  background: var(--amber-soft);
+  color: var(--amber-text);
+  font-size: 12.5px;
+  line-height: 20px;
+}
+
+.ov-notice img {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.ov-notice b {
+  display: block;
+}
+
+.ov-outline-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 24px;
+  border: 1.25px solid var(--border);
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--green-700);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ov-outline-button:hover {
+  background: var(--page-bg);
+}
+
+/* Recent Alerts rows */
+.ov-alert-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 13px 20px;
+  border-top: 1.25px solid var(--divider);
+}
+
+.ov-alert-row:first-of-type {
+  border-top: none;
+}
+
+.ov-alert-dot {
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: #c4c6c4;
+  flex-shrink: 0;
+}
+
+.ov-alert-dot-new {
+  background: #f5a623;
+}
+
+.ov-alert-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ov-alert-main b {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text);
+}
+
+.ov-alert-main span {
+  font-size: 12.5px;
+  line-height: 19px;
+  color: #565656;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ov-alert-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.ov-alert-side .ov-mono-alt {
+  font-size: 12px;
+  color: #6e6e6e;
+}
+
+.ov-alert-side em {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.66px;
+  color: #949494;
+}
+
+.ov-alert-side em.ov-alert-pending {
+  color: var(--amber-text);
+}
+
+/* Latest admin actions */
+.ov-actions {
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ov-actions li {
+  display: flex;
+  flex-direction: column;
+  padding-left: 12px;
+  border-left: 1.25px solid var(--border);
+}
+
+.ov-actions b {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.ov-actions span {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.ov-text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  background: none;
+  border: none;
+  color: #005a2a;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ov-text-link:hover {
+  text-decoration: underline;
+}
+
+/* LAPTOP / TABLET */
+@media (max-width: 1100px) {
+  .ov-live { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+  .ov-panels { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* PHONE */
+@media (max-width: 560px) {
+  .ov-caps { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .ov-live-map { height: 320px; }
+  .ov-alert-row { flex-wrap: wrap; }
+  .ov-alert-side { width: 100%; flex-direction: row; justify-content: space-between; margin-left: 24px; }
+}
+
+/* ---- USE THE WHOLE SCREEN WIDTH, title at the far left ---- */
+.ov-page .ui-main {
+  max-width: none;
+  padding: 28px 40px 48px;
+}
+
+.ov-page .ui-page-header {
+  margin-bottom: 28px;
+}
+
+@media (max-width: 900px) {
+  .ov-page .ui-main { padding: 20px 12px 32px; }
+}
+
+/* Deployed posts: centered next to the map (the Live Map title stays above the map) */
+@media (min-width: 1101px) {
+  .ov-live {
+    grid-template-rows: auto 1fr;
+    align-items: stretch;
+  }
+
+  .ov-live-left {
+    display: contents;
+  }
+
+  .ov-live-left .ov-live-title { grid-column: 1; grid-row: 1; }
+  .ov-live-left .ov-live-map { grid-column: 1; grid-row: 2; margin-top: 16px; }
+
+  .ov-posts {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: stretch;
+    margin-top: 16px;
+  }
+
+  /* the rows share the height, so the container is as tall as the map */
+  .ov-posts .ov-post {
+    flex: 1;
+  }
+}

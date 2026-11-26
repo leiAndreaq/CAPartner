@@ -16,12 +16,11 @@ function signPending(adminId, minutes) {
   });
 }
 
-// "admin" = fully logged in.
-function signAccess(adminId, minutes) {
-  return jwt.sign({ sub: adminId, typ: 'admin' }, SECRET, {
-    algorithm: 'HS256',
-    expiresIn: minutes * 60,
-  });
+// "admin" = fully logged in, until the admin clicks Log out (no time limit; the web app keeps it
+// only while the browser is open). lat = login time in milliseconds; Log out writes 'admin_logout'
+// to the audit log, and requireAdmin refuses every pass made before that.
+function signAccess(adminId) {
+  return jwt.sign({ sub: adminId, typ: 'admin', lat: Date.now() }, SECRET, { algorithm: 'HS256' });
 }
 
 // Any short-lived pass for one step (example: 'enforcer-pending', 'admin-change-email').
@@ -75,16 +74,24 @@ async function requireAdmin(req, res, next) {
     const header = req.headers.authorization || '';
     const token = header.startsWith('Bearer ') ? header.slice(7) : '';
     const payload = readToken(token, 'admin');
-    if (!payload) return res.status(401).json({ error: 'Please log in.' });
+    if (!payload || typeof payload.lat !== 'number') return res.status(401).json({ error: 'Please log in.' });
 
     const result = await pool.query(
-      'SELECT id, email, full_name, is_active, is_locked FROM admins WHERE id = $1',
+      `SELECT a.id, a.email, a.full_name, a.is_active, a.is_locked,
+              (SELECT max(l.occurred_at) FROM audit_logs l
+                WHERE l.actor_admin_id = a.id AND l.action_type = 'admin_logout') AS last_logout_at
+       FROM admins a WHERE a.id = $1`,
       [payload.sub]
     );
     const admin = result.rows[0];
     if (!admin || !admin.is_active || admin.is_locked) {
       return res.status(401).json({ error: 'Please log in.' });
     }
+    // Logged out after this pass was made: the pass no longer works.
+    if (admin.last_logout_at && admin.last_logout_at.getTime() >= payload.lat) {
+      return res.status(401).json({ error: 'Please log in.' });
+    }
+    delete admin.last_logout_at;
     req.admin = admin;
     next();
   } catch (err) {

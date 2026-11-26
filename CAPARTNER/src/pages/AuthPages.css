@@ -1,0 +1,424 @@
+/* LOGIN AND TWO-FACTOR PAGES, from the Figma design. Colors come from styles/theme.css.
+   The phone layout (the card turns into a column) lives in index.css and uses .login-... class names. */
+
+.login-shell {
+  min-height: 100vh;
+  width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+  background: var(--green-700);
+  font-family: var(--font-sans);
+}
+
+/* White rounded card with a white outline */
+.login-card {
+  display: flex;
+  width: 100%;
+  max-width: 830px;
+  min-height: 550px;
+  padding: 12px;
+  box-sizing: border-box;
+  background: #ffffff;
+  border: 2px solid #ffffff;
+  border-radius: 30px;
+  box-shadow: 0 4px 4px 2px rgba(0, 0, 0, 0.5), inset 0 4px 4px rgba(0, 0, 0, 0.25);
+}
+
+.login-form-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 26px 44px 14px;
+}
+
+.login-avatar {
+  display: block;
+  width: 90px;
+  height: 90px;
+  margin: 0 auto;
+  object-fit: contain;
+  user-select: none;
+  pointer-events: none;
+}
+
+.login-title {
+  margin: 0;
+  text-align: center;
+  font-size: 40px;
+  font-weight: 900;
+  line-height: 1.1;
+  color: var(--green-700);
+}
+
+.login-lead {
+  margin: 4px 0 28px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 300;
+  color: #000000;
+}
+
+.auth-field {
+  margin-bottom: 18px;
+}
+
+.auth-field label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--green-700);
+}
+
+.auth-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-input input {
+  width: 100%;
+  height: 35px;
+  min-height: 35px;
+  padding: 0 14px;
+  box-sizing: border-box;
+  border: 1px solid var(--green-700);
+  border-radius: 5px;
+  background: #ffffff;
+  box-shadow: inset 0 4px 4px rgba(0, 0, 0, 0.25);
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a1a1a;
+  outline: none;
+}
+
+.auth-input input::placeholder {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.auth-input input:focus {
+  outline: 2px solid var(--green-bright);
+  outline-offset: 1px;
+}
+
+.auth-input input.has-eye {
+  padding-right: 44px;
+}
+
+.auth-eye {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  min-height: 20px;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.auth-eye img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.auth-eye.is-shown img {
+  opacity: 0.45;
+}
+
+.login-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: -6px 0 18px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--green-700);
+}
+
+.login-options label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.login-options input {
+  width: 14px;
+  height: 14px;
+  min-height: 14px;
+  accent-color: var(--green-700);
+}
+
+.login-options a {
+  color: var(--green-700);
+  text-decoration: none;
+}
+
+.login-options a:hover {
+  text-decoration: underline;
+}
+
+.auth-submit {
+  width: 100%;
+  height: 35px;
+  min-height: 35px;
+  border: none;
+  border-radius: 5px;
+  background: var(--green-700);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.auth-submit:disabled {
+  opacity: 0.8;
+  cursor: wait;
+}
+
+.auth-notice,
+.auth-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 16px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.auth-notice { background: #f0fdf4; border: 1px solid #86efac; color: var(--green-700); }
+.auth-error { background: #fef2f2; border: 1px solid #fca5a5; color: #dc2626; }
+
+/* Secure connection / 2-step verification */
+.login-badges {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding-top: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #000000;
+}
+
+.login-badges span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.login-badges span:first-child {
+  color: var(--green-700);
+}
+
+.login-badges img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+/* Right side: dark green brand panel */
+.login-brand-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+  text-align: center;
+  background: var(--green-700);
+  border-radius: 0 20px 20px 0;
+  color: #ffffff;
+}
+
+.login-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding: 6px 22px;
+  border-radius: 50px;
+  background: rgba(217, 217, 217, 0.2);
+  color: #19d600;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.login-pill::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.login-brand-panel img {
+  display: block;
+  width: 229px;
+  max-width: 100%;
+  height: auto;
+  user-select: none;
+  pointer-events: none;
+}
+
+.login-brand-panel h1 {
+  margin: 16px 0 8px;
+  font-size: 40px;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.login-brand-panel p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* TWO-FACTOR CARD */
+.tf-card {
+  width: 100%;
+  max-width: 415px;
+  min-height: 550px;
+  padding: 40px 36px 28px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #ffffff;
+  border: 2px solid #ffffff;
+  border-radius: 30px;
+  box-shadow: 0 4px 4px 2px rgba(0, 0, 0, 0.5), inset 0 4px 4px rgba(0, 0, 0, 0.25);
+}
+
+.tf-icon {
+  width: 150px;
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--green-700);
+}
+
+.tf-icon img {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+}
+
+.tf-title {
+  margin: 28px 0 0;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.725px;
+  color: var(--green-700);
+}
+
+.tf-lead {
+  max-width: 340px;
+  margin: 4px 0 22px;
+  text-align: center;
+  font-size: 10px;
+  font-style: italic;
+  line-height: 20px;
+  letter-spacing: 1px;
+  color: var(--green-700);
+}
+
+.tf-codes {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 40px;
+}
+
+.tf-codes input {
+  width: 39px;
+  height: 51px;
+  min-height: 51px;
+  padding: 0;
+  box-sizing: border-box;
+  border: 2px solid var(--green-700);
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--green-700);
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+}
+
+.tf-codes input:focus {
+  outline: 2px solid var(--green-bright);
+  outline-offset: 1px;
+}
+
+.tf-codes.has-error input {
+  border-color: #dc2626;
+}
+
+.tf-submit {
+  width: 100%;
+  max-width: 304px;
+  height: 44px;
+  min-height: 44px;
+  border: none;
+  border-radius: 15px;
+  background: var(--green-700);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.725px;
+  cursor: pointer;
+}
+
+.tf-submit:disabled {
+  cursor: wait;
+}
+
+.tf-resend {
+  margin: 16px 0 0;
+  text-align: center;
+  font-size: 14px;
+  font-style: italic;
+  letter-spacing: -0.725px;
+  color: var(--green-700);
+}
+
+.tf-resend button {
+  min-height: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  font-size: inherit;
+  font-style: normal;
+  font-weight: 600;
+  text-decoration: underline;
+  color: var(--green-700);
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .login-form-panel { padding: 20px 16px 14px; }
+  .tf-card { padding: 32px 20px 24px; }
+  .tf-codes { gap: 6px; }
+  .tf-codes input { width: 36px; }
+}
